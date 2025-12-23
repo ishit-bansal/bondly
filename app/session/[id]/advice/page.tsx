@@ -61,7 +61,6 @@ export default async function AdvicePage({ params }: { params: Promise<{ id: str
     isCreator = advice.is_creator
   }
 
-  const isCreator = advice.is_creator
   const userName = isCreator ? session.creator_name : session.partner_name
   const partnerName = isCreator ? session.partner_name : session.creator_name
 
