@@ -17,23 +17,23 @@ export default function ProcessingPage({ params }: { params: Promise<{ id: strin
   useEffect(() => {
     if (!sessionId) return
 
-    const checkStatus = async () => {
-      const supabase = createClient()
+    const supabase = createClient()
+    let intervalId: NodeJS.Timeout | null = null
 
-      // Poll for session status
-      const interval = setInterval(async () => {
-        const { data } = await supabase.from("sessions").select("status").eq("id", sessionId).single()
+    // Poll for session status
+    intervalId = setInterval(async () => {
+      const { data } = await supabase.from("sessions").select("status").eq("id", sessionId).single()
 
-        if (data?.status === "analyzed") {
-          clearInterval(interval)
-          router.push(`/session/${sessionId}/advice`)
-        }
-      }, 3000)
+      if (data?.status === "analyzed") {
+        if (intervalId) clearInterval(intervalId)
+        router.push(`/session/${sessionId}/advice`)
+      }
+    }, 3000)
 
-      return () => clearInterval(interval)
+    // Cleanup on unmount
+    return () => {
+      if (intervalId) clearInterval(intervalId)
     }
-
-    checkStatus()
   }, [sessionId, router])
 
   return (

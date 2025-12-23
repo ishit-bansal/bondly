@@ -12,8 +12,27 @@ export default async function AdvicePage({ params }: { params: Promise<{ id: str
   // Fetch session
   const { data: session } = await supabase.from("sessions").select("*").eq("id", id).single()
 
-  if (!session || session.status !== "analyzed") {
+  if (!session) {
+    redirect("/")
+  }
+
+  // Get all advice for this session first (more reliable check)
+  const { data: allAdvice } = await supabase
+    .from("advice")
+    .select("*")
+    .eq("session_id", id)
+
+  // If advice doesn't exist yet, redirect to processing
+  if (!allAdvice || allAdvice.length < 2) {
     redirect(`/session/${id}/processing`)
+  }
+
+  // If session status is not analyzed but advice exists, update it
+  if (session.status !== "analyzed") {
+    await supabase
+      .from("sessions")
+      .update({ status: "analyzed" })
+      .eq("id", id)
   }
 
   // Get current user
@@ -26,16 +45,6 @@ export default async function AdvicePage({ params }: { params: Promise<{ id: str
     .from("responses")
     .select("user_id, is_creator")
     .eq("session_id", id)
-
-  // Get all advice for this session
-  const { data: allAdvice } = await supabase
-    .from("advice")
-    .select("*")
-    .eq("session_id", id)
-
-  if (!allAdvice || allAdvice.length < 2) {
-    redirect(`/session/${id}/processing`)
-  }
 
   // Determine which advice to show
   let advice = null
