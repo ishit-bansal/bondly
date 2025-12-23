@@ -9,32 +9,56 @@ export default async function AdvicePage({ params }: { params: Promise<{ id: str
   const { id } = await params
   const supabase = await createClient()
 
+  // Fetch session
+  const { data: session } = await supabase.from("sessions").select("*").eq("id", id).single()
+
+  if (!session || session.status !== "analyzed") {
+    redirect(`/session/${id}/processing`)
+  }
+
   // Get current user
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect("/auth/login")
-  }
+  // Get responses to match user_id
+  const { data: responses } = await supabase
+    .from("responses")
+    .select("user_id, is_creator")
+    .eq("session_id", id)
 
-  // Fetch session
-  const { data: session } = await supabase.from("sessions").select("*").eq("id", id).single()
-
-  if (!session) {
-    redirect("/")
-  }
-
-  // Fetch user's advice
-  const { data: advice } = await supabase
+  // Get all advice for this session
+  const { data: allAdvice } = await supabase
     .from("advice")
     .select("*")
     .eq("session_id", id)
-    .eq("user_id", user.id)
-    .single()
 
+  if (!allAdvice || allAdvice.length < 2) {
+    redirect(`/session/${id}/processing`)
+  }
+
+  // Determine which advice to show
+  let advice = null
+  let isCreator = false
+
+  if (user && responses) {
+    // Find the response that matches current user
+    const userResponse = responses.find(r => r.user_id === user.id)
+    if (userResponse) {
+      // Match advice by is_creator flag
+      advice = allAdvice.find(a => a.is_creator === userResponse.is_creator)
+      isCreator = userResponse.is_creator
+    } else if (session.creator_id === user.id) {
+      // User is the creator (by session creator_id)
+      advice = allAdvice.find(a => a.is_creator)
+      isCreator = true
+    }
+  }
+
+  // Fallback: default to creator's advice
   if (!advice) {
-    redirect("/")
+    advice = allAdvice.find(a => a.is_creator) || allAdvice[0]
+    isCreator = advice.is_creator
   }
 
   const isCreator = advice.is_creator
