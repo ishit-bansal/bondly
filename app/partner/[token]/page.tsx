@@ -87,16 +87,43 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
       if (!authData.user) throw new Error("Failed to create user")
 
       // Create partner's response
-      const { error: responseError } = await supabase.from("responses").insert({
-        session_id: session.id,
-        user_id: authData.user.id,
-        is_creator: false,
-        situation_description: situation,
-        feelings: feelings,
-        emotional_state: selectedEmotions,
-      })
+      const { data: insertedResponse, error: responseError } = await supabase
+        .from("responses")
+        .insert({
+          session_id: session.id,
+          user_id: authData.user.id,
+          is_creator: false,
+          situation_description: situation,
+          feelings: feelings,
+          emotional_state: selectedEmotions,
+        })
+        .select()
+        .single()
 
-      if (responseError) throw responseError
+      if (responseError) {
+        console.error("[Partner] Response insert error:", responseError)
+        throw responseError
+      }
+
+      if (!insertedResponse) {
+        console.error("[Partner] No response data returned from insert")
+        throw new Error("Failed to save response")
+      }
+
+      console.log("[Partner] Response saved successfully! ID:", insertedResponse.id)
+      console.log("[Partner] Waiting 500ms for DB to sync...")
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // Verify it was saved by reading it back
+      const { data: verifyData, error: verifyError } = await supabase
+        .from("responses")
+        .select("id, is_creator")
+        .eq("session_id", session.id)
+
+      console.log("[Partner] Verification: Found", verifyData?.length || 0, "responses in DB")
+      if (verifyData) {
+        console.log("[Partner] Responses:", verifyData.map(r => ({ id: r.id, is_creator: r.is_creator })))
+      }
 
       // Update session status
       const { error: updateError } = await supabase
@@ -104,8 +131,13 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
         .update({ status: "completed" })
         .eq("id", session.id)
 
-      if (updateError) throw updateError
+      if (updateError) {
+        console.error("[Partner] Session update error:", updateError)
+        throw updateError
+      }
 
+      console.log("[Partner] Calling analyze-session API...")
+      
       // Trigger AI analysis
       const response = await fetch("/api/analyze-session", {
         method: "POST",
@@ -113,7 +145,12 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
         body: JSON.stringify({ sessionId: session.id }),
       })
 
-      if (!response.ok) throw new Error("Failed to analyze session")
+      const responseData = await response.json()
+      console.log("[Partner] API response:", response.status, responseData)
+
+      if (!response.ok) {
+        throw new Error(responseData.error || "Failed to analyze session")
+      }
 
       // Redirect to waiting page
       router.push(`/session/${session.id}/processing`)
