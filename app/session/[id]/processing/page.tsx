@@ -19,13 +19,31 @@ export default function ProcessingPage({ params }: { params: Promise<{ id: strin
 
     const supabase = createClient()
     let intervalId: NodeJS.Timeout | null = null
+    let attempts = 0
+    const maxAttempts = 60 // 3 minutes max (60 * 3 seconds)
 
-    // Poll for session status
+    // Poll for advice directly (more reliable than status)
     intervalId = setInterval(async () => {
-      const { data } = await supabase.from("sessions").select("status").eq("id", sessionId).single()
+      attempts++
+      
+      // Check if advice exists
+      const { data: advice } = await supabase
+        .from("advice")
+        .select("id")
+        .eq("session_id", sessionId)
+        .limit(2)
 
-      if (data?.status === "analyzed") {
+      // If we have 2 pieces of advice, redirect immediately
+      if (advice && advice.length >= 2) {
         if (intervalId) clearInterval(intervalId)
+        router.push(`/session/${sessionId}/advice`)
+        return
+      }
+
+      // Stop after max attempts
+      if (attempts >= maxAttempts) {
+        if (intervalId) clearInterval(intervalId)
+        // Still try to redirect - maybe advice was created but query failed
         router.push(`/session/${sessionId}/advice`)
       }
     }, 3000)

@@ -16,8 +16,9 @@ export default async function AdvicePage({ params }: { params: Promise<{ id: str
     redirect("/")
   }
 
-  // Get all advice for this session first (more reliable check)
-  const { data: allAdvice } = await supabase
+  // Get all advice for this session - use service role to bypass RLS
+  const supabaseAdmin = await createClient(true)
+  const { data: allAdvice } = await supabaseAdmin
     .from("advice")
     .select("*")
     .eq("session_id", id)
@@ -27,21 +28,21 @@ export default async function AdvicePage({ params }: { params: Promise<{ id: str
     redirect(`/session/${id}/processing`)
   }
 
-  // If session status is not analyzed but advice exists, update it
+  // Update status to analyzed if needed (idempotent)
   if (session.status !== "analyzed") {
-    await supabase
+    await supabaseAdmin
       .from("sessions")
       .update({ status: "analyzed" })
       .eq("id", id)
   }
 
-  // Get current user
+  // Get current user (for matching)
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Get responses to match user_id
-  const { data: responses } = await supabase
+  // Get responses to match user_id - use service role to bypass RLS
+  const { data: responses } = await supabaseAdmin
     .from("responses")
     .select("user_id, is_creator")
     .eq("session_id", id)
