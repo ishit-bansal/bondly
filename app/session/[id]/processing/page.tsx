@@ -18,39 +18,117 @@ export default function ProcessingPage({ params }: { params: Promise<{ id: strin
     if (!sessionId) return
 
     const supabase = createClient()
-    let intervalId: NodeJS.Timeout | null = null
-    let attempts = 0
-    const maxAttempts = 60 // 3 minutes max (60 * 3 seconds)
 
-    // Poll for advice directly (more reliable than status)
-    intervalId = setInterval(async () => {
-      attempts++
-      
-      // Check if advice exists
+    // Check if advice already exists and redirect to user's unique advice
+    supabase
+      .from("advice")
+      .select("id, user_id")
+      .eq("session_id", sessionId)
+      .then(async ({ data: advice }) => {
+        if (advice && advice.length >= 2) {
+          // Get current user to find their advice
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            const userAdvice = advice.find(a => a.user_id === user.id)
+            if (userAdvice) {
+              router.push(`/advice/${userAdvice.id}`)
+              return
+            }
+          }
+        }
+      })
+
+    // Subscribe to realtime updates for advice creation
+    let channel: any = null
+    try {
+      channel = supabase
+        .channel(`advice-${sessionId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "advice",
+            filter: `session_id=eq.${sessionId}`,
+          },
+        async () => {
+          // Check if both pieces of advice exist and redirect to user's advice
+          const { data: advice } = await supabase
+            .from("advice")
+            .select("id, user_id")
+            .eq("session_id", sessionId)
+
+          if (advice && advice.length >= 2) {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+              const userAdvice = advice.find(a => a.user_id === user.id)
+              if (userAdvice) {
+                router.push(`/advice/${userAdvice.id}`)
+              }
+            }
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "sessions",
+          filter: `id=eq.${sessionId}`,
+        },
+        async (payload) => {
+          if (payload.new && payload.new.status === "analyzed") {
+            // Get user's advice when session is analyzed
+            const { data: advice } = await supabase
+              .from("advice")
+              .select("id, user_id")
+              .eq("session_id", sessionId)
+            
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user && advice) {
+              const userAdvice = advice.find(a => a.user_id === user.id)
+              if (userAdvice) {
+                router.push(`/advice/${userAdvice.id}`)
+              }
+            }
+          }
+        }
+      )
+      .subscribe()
+    } catch (error) {
+      // Realtime failed, will use polling fallback
+    }
+
+    // Fallback: poll every 2 seconds as backup
+    const intervalId = setInterval(async () => {
       const { data: advice } = await supabase
         .from("advice")
-        .select("id")
+        .select("id, user_id")
         .eq("session_id", sessionId)
-        .limit(2)
 
-      // If we have 2 pieces of advice, redirect immediately
       if (advice && advice.length >= 2) {
-        if (intervalId) clearInterval(intervalId)
-        router.push(`/session/${sessionId}/advice`)
-        return
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const userAdvice = advice.find(a => a.user_id === user.id)
+          if (userAdvice) {
+            clearInterval(intervalId)
+            router.push(`/advice/${userAdvice.id}`)
+          }
+        }
       }
-
-      // Stop after max attempts
-      if (attempts >= maxAttempts) {
-        if (intervalId) clearInterval(intervalId)
-        // Still try to redirect - maybe advice was created but query failed
-        router.push(`/session/${sessionId}/advice`)
-      }
-    }, 3000)
+    }, 2000)
 
     // Cleanup on unmount
     return () => {
-      if (intervalId) clearInterval(intervalId)
+      clearInterval(intervalId)
+      if (channel) {
+        try {
+          supabase.removeChannel(channel)
+        } catch (error) {
+          // Ignore cleanup errors
+        }
+      }
     }
   }, [sessionId, router])
 

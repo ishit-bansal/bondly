@@ -110,20 +110,8 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
         throw new Error("Failed to save response")
       }
 
-      console.log("[Partner] Response saved successfully! ID:", insertedResponse.id)
-      console.log("[Partner] Waiting 500ms for DB to sync...")
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // Verify it was saved by reading it back
-      const { data: verifyData, error: verifyError } = await supabase
-        .from("responses")
-        .select("id, is_creator")
-        .eq("session_id", session.id)
-
-      console.log("[Partner] Verification: Found", verifyData?.length || 0, "responses in DB")
-      if (verifyData) {
-        console.log("[Partner] Responses:", verifyData.map(r => ({ id: r.id, is_creator: r.is_creator })))
-      }
+      // Small delay to ensure DB consistency
+      await new Promise(resolve => setTimeout(resolve, 300))
 
       // Update session status
       const { error: updateError } = await supabase
@@ -132,11 +120,8 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
         .eq("id", session.id)
 
       if (updateError) {
-        console.error("[Partner] Session update error:", updateError)
         throw updateError
       }
-
-      console.log("[Partner] Calling analyze-session API...")
       
       // Trigger AI analysis
       const response = await fetch("/api/analyze-session", {
@@ -146,13 +131,29 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
       })
 
       const responseData = await response.json()
-      console.log("[Partner] API response:", response.status, responseData)
 
       if (!response.ok) {
+        if (responseData.code === "QUOTA_EXCEEDED" || response.status === 429) {
+          setError("The AI service has reached its daily limit. Your response has been saved. Please check back tomorrow for your personalized advice, or contact support.")
+          setTimeout(() => {
+            router.push(`/session/${session.id}/processing`)
+          }, 3000)
+          return
+        }
         throw new Error(responseData.error || "Failed to analyze session")
       }
 
-      // Redirect to waiting page
+      // Redirect to unique advice page using advice ID
+      if (responseData.adviceIds) {
+        // Partner gets their own unique advice URL
+        const partnerAdviceId = responseData.adviceIds.partner
+        if (partnerAdviceId) {
+          router.push(`/advice/${partnerAdviceId}`)
+          return
+        }
+      }
+      
+      // Fallback: redirect to processing page
       router.push(`/session/${session.id}/processing`)
     } catch (err) {
       console.error("[v0] Error submitting response:", err)

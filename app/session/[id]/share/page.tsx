@@ -1,20 +1,186 @@
+"use client"
+
 import type React from "react"
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Heart } from "lucide-react"
-import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { CopyButton } from "@/components/copy-button"
+import { useEffect, useState } from "react"
+import type { Session } from "@/lib/types"
 
-export default async function SharePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const supabase = await createClient()
+export default function SharePage({ params }: { params: Promise<{ id: string }> }) {
+  const [sessionId, setSessionId] = useState<string>("")
+  const [session, setSession] = useState<Session | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const router = useRouter()
 
-  const { data: session, error } = await supabase.from("sessions").select("*").eq("id", id).single()
+  useEffect(() => {
+    params.then((p) => setSessionId(p.id))
+  }, [params])
 
-  if (error || !session) {
-    redirect("/")
+  useEffect(() => {
+    if (!sessionId) return
+
+    const supabase = createClient()
+
+    // Fetch initial session
+    const fetchSession = async () => {
+      const { data, error } = await supabase.from("sessions").select("*").eq("id", sessionId).single()
+      
+      if (error || !data) {
+        router.push("/")
+        return
+      }
+
+      setSession(data)
+      setIsLoading(false)
+
+      // If already analyzed, redirect to creator's advice
+      if (data.status === "analyzed") {
+        const { data: advice } = await supabase
+          .from("advice")
+          .select("id, user_id")
+          .eq("session_id", sessionId)
+        
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user && advice) {
+          const userAdvice = advice.find(a => a.user_id === user.id)
+          if (userAdvice) {
+            router.push(`/advice/${userAdvice.id}`)
+            return
+          }
+        }
+      }
+
+      // If completed, redirect to processing
+      if (data.status === "completed") {
+        router.push(`/session/${sessionId}/processing`)
+        return
+      }
+    }
+
+    fetchSession()
+
+    // Subscribe to realtime updates for session status and advice
+    let channel: any = null
+    try {
+      channel = supabase
+        .channel(`session-${sessionId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "sessions",
+            filter: `id=eq.${sessionId}`,
+          },
+        async (payload) => {
+          if (payload.new && payload.new.status === "analyzed") {
+            // Get creator's advice when session is analyzed
+            const { data: advice } = await supabase
+              .from("advice")
+              .select("id, user_id")
+              .eq("session_id", sessionId)
+            
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user && advice) {
+              const userAdvice = advice.find(a => a.user_id === user.id)
+              if (userAdvice) {
+                router.push(`/advice/${userAdvice.id}`)
+              }
+            }
+          } else if (payload.new && payload.new.status === "completed") {
+            router.push(`/session/${sessionId}/processing`)
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "advice",
+          filter: `session_id=eq.${sessionId}`,
+        },
+        async () => {
+          // Check if both pieces of advice exist and redirect to creator's advice
+          const { data: advice } = await supabase
+            .from("advice")
+            .select("id, user_id")
+            .eq("session_id", sessionId)
+
+          if (advice && advice.length >= 2) {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+              const userAdvice = advice.find(a => a.user_id === user.id)
+              if (userAdvice) {
+                router.push(`/advice/${userAdvice.id}`)
+              }
+            }
+          }
+        }
+      )
+      .subscribe()
+    } catch (error) {
+      // Realtime failed, will use polling fallback
+    }
+
+    // Fallback: poll every 3 seconds if realtime isn't working
+    const pollInterval = setInterval(async () => {
+      const { data: sessionData } = await supabase
+        .from("sessions")
+        .select("status")
+        .eq("id", sessionId)
+        .single()
+
+      if (sessionData) {
+        if (sessionData.status === "analyzed") {
+          clearInterval(pollInterval)
+          router.push(`/session/${sessionId}/advice`)
+        } else if (sessionData.status === "completed") {
+          router.push(`/session/${sessionId}/processing`)
+        }
+      }
+
+      // Also check for advice and redirect to user's unique advice
+      const { data: advice } = await supabase
+        .from("advice")
+        .select("id, user_id")
+        .eq("session_id", sessionId)
+
+      if (advice && advice.length >= 2) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const userAdvice = advice.find(a => a.user_id === user.id)
+          if (userAdvice) {
+            clearInterval(pollInterval)
+            router.push(`/advice/${userAdvice.id}`)
+          }
+        }
+      }
+    }, 3000)
+
+    return () => {
+      clearInterval(pollInterval)
+      if (channel) {
+        try {
+          supabase.removeChannel(channel)
+        } catch (error) {
+          // Ignore cleanup errors
+        }
+      }
+    }
+  }, [sessionId, router])
+
+  if (isLoading || !session) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-rose-50 to-orange-50 flex items-center justify-center">
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    )
   }
 
   const shareUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/partner/${session.share_token}`
@@ -53,8 +219,15 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
           </div>
 
           <div className="flex flex-col gap-3">
+            <Link href={`/session/${sessionId}/processing`}>
+              <Button className="w-full bg-blue-500 hover:bg-blue-600">
+                Check Status
+              </Button>
+            </Link>
             <Link href="/dashboard">
-              <Button className="w-full bg-rose-500 hover:bg-rose-600">Go to Dashboard</Button>
+              <Button variant="outline" className="w-full bg-transparent">
+                Go to Dashboard
+              </Button>
             </Link>
             <Link href="/">
               <Button variant="outline" className="w-full bg-transparent">
