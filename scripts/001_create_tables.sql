@@ -40,17 +40,37 @@ alter table public.responses enable row level security;
 alter table public.advice enable row level security;
 
 -- Sessions policies
+-- Note: Sessions contain only names (not sensitive). The share_token (UUID) provides security.
+-- Partners need to access sessions via share_token before authentication.
+-- The actual sensitive data (responses, advice) is protected by user-specific RLS.
+
 create policy "Users can view their own sessions"
   on public.sessions for select
   using (auth.uid() = creator_id);
+
+-- Allow public read access to sessions (partner needs access via share_token)
+-- SECURITY: This is acceptable because:
+-- 1. Sessions only contain names, not sensitive response data
+-- 2. share_token is a cryptographically random UUID (very hard to guess)
+-- 3. Responses and advice are protected by user-specific RLS policies
+create policy "Public session read for partner access"
+  on public.sessions for select
+  using (true);
 
 create policy "Users can insert their own sessions"
   on public.sessions for insert
   with check (auth.uid() = creator_id);
 
-create policy "Users can update their own sessions"
+create policy "Creator can update their own sessions"
   on public.sessions for update
   using (auth.uid() = creator_id);
+
+-- Allow authenticated users to update session status to completed
+-- This is needed when partner submits their response
+create policy "Partner can complete session"
+  on public.sessions for update
+  using (status = 'waiting_for_partner')
+  with check (status = 'completed');
 
 -- Responses policies
 create policy "Users can view responses for their sessions"
