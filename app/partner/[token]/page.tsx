@@ -43,18 +43,38 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
   useEffect(() => {
     if (!token) return
 
+    // Validate token format (UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!uuidRegex.test(token)) {
+      setError("Invalid session link")
+      setIsLoading(false)
+      return
+    }
+
     const fetchSession = async () => {
       const supabase = createClient()
-      const { data, error } = await supabase.from("sessions").select("*").eq("share_token", token).single()
+      
+      // Use admin-level access to fetch by share_token (sessions are protected by RLS)
+      const { data, error } = await supabase
+        .from("sessions")
+        .select("*")
+        .eq("share_token", token)
+        .single()
 
       if (error || !data) {
-        setError("Session not found")
+        setError("Session not found or link has expired")
         setIsLoading(false)
         return
       }
 
       if (data.status === "analyzed") {
-        setError("This session has already been completed")
+        setError("This session has already been completed. Both partners have received their advice.")
+        setIsLoading(false)
+        return
+      }
+
+      if (data.status === "completed") {
+        setError("Your partner has already submitted their response. Please wait while we generate advice.")
         setIsLoading(false)
         return
       }
@@ -210,11 +230,13 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
                   id="situation"
                   placeholder="What happened? What's your view of the issue?"
                   value={situation}
-                  onChange={(e) => setSituation(e.target.value)}
+                  onChange={(e) => setSituation(e.target.value.slice(0, 2000))}
                   required
                   rows={5}
                   className="resize-none"
+                  maxLength={2000}
                 />
+                <p className="text-xs text-gray-500 text-right">{situation.length}/2000</p>
               </div>
 
               <div className="space-y-2">
@@ -223,11 +245,13 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
                   id="feelings"
                   placeholder="Express your emotions and thoughts..."
                   value={feelings}
-                  onChange={(e) => setFeelings(e.target.value)}
+                  onChange={(e) => setFeelings(e.target.value.slice(0, 1000))}
                   required
                   rows={4}
                   className="resize-none"
+                  maxLength={1000}
                 />
+                <p className="text-xs text-gray-500 text-right">{feelings.length}/1000</p>
               </div>
 
               <div className="space-y-3">
