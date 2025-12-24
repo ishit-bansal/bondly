@@ -4,7 +4,7 @@ import type React from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Heart } from "lucide-react"
+import { Heart, Clock, CheckCircle2, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { CopyButton } from "@/components/copy-button"
@@ -15,6 +15,8 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
   const [sessionId, setSessionId] = useState<string>("")
   const [session, setSession] = useState<Session | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [status, setStatus] = useState<"waiting" | "processing" | "ready">("waiting")
+  const [adviceId, setAdviceId] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -26,9 +28,13 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
 
     const supabase = createClient()
 
-    // Fetch initial session
+    // Fetch initial session and check status
     const fetchSession = async () => {
-      const { data, error } = await supabase.from("sessions").select("*").eq("id", sessionId).single()
+      const { data, error } = await supabase
+        .from("sessions")
+        .select("*")
+        .eq("id", sessionId)
+        .single()
       
       if (error || !data) {
         router.push("/")
@@ -38,62 +44,74 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
       setSession(data)
       setIsLoading(false)
 
-      // If already analyzed, redirect to creator's advice
-      if (data.status === "analyzed") {
-        const { data: advice } = await supabase
-          .from("advice")
-          .select("id, user_id")
-          .eq("session_id", sessionId)
-        
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user && advice) {
-          const userAdvice = advice.find(a => a.user_id === user.id)
+      // Update status based on session state
+      if (data.status === "waiting_for_partner") {
+        setStatus("waiting")
+      } else if (data.status === "completed") {
+        setStatus("processing")
+      } else if (data.status === "analyzed") {
+        setStatus("ready")
+        // Redirect to advice
+        await redirectToAdvice(supabase, sessionId)
+      }
+    }
+
+    // Helper function to redirect to user's advice
+    const redirectToAdvice = async (supabase: any, sessionId: string) => {
+      const { data: { user } } = await supabase.auth.getUser()
+
+      // Query advice - might be blocked by RLS if user not authenticated
+      const { data: advice } = await supabase
+        .from("advice")
+        .select("id, user_id, is_creator")
+        .eq("session_id", sessionId)
+
+      if (advice && advice.length > 0) {
+        // First try to find advice by user_id
+        if (user) {
+          const userAdvice = advice.find((a: any) => a.user_id === user.id)
           if (userAdvice) {
             router.push(`/advice/${userAdvice.id}`)
-            return
+            return true
+          }
+        }
+        
+        // Fallback: creator's advice (this is the share page, so user is creator)
+        const creatorAdvice = advice.find((a: any) => a.is_creator === true)
+        if (creatorAdvice) {
+          setAdviceId(creatorAdvice.id)
+          if (user) {
+            router.push(`/advice/${creatorAdvice.id}`)
+            return true
           }
         }
       }
-
-      // If completed, redirect to processing
-      if (data.status === "completed") {
-        router.push(`/session/${sessionId}/processing`)
-        return
-      }
+      
+      // If RLS blocked access but session is analyzed, show login prompt
+      return false
     }
 
     fetchSession()
 
-    // Subscribe to realtime updates for session status and advice
-    let channel: any = null
-    try {
-      channel = supabase
-        .channel(`session-${sessionId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "sessions",
-            filter: `id=eq.${sessionId}`,
-          },
-        async (payload) => {
-          if (payload.new && payload.new.status === "analyzed") {
-            // Get creator's advice when session is analyzed
-            const { data: advice } = await supabase
-              .from("advice")
-              .select("id, user_id")
-              .eq("session_id", sessionId)
-            
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user && advice) {
-              const userAdvice = advice.find(a => a.user_id === user.id)
-              if (userAdvice) {
-                router.push(`/advice/${userAdvice.id}`)
-              }
-            }
-          } else if (payload.new && payload.new.status === "completed") {
-            router.push(`/session/${sessionId}/processing`)
+    // Subscribe to realtime updates
+    const channel = supabase
+      .channel(`share-${sessionId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "sessions",
+          filter: `id=eq.${sessionId}`,
+        },
+        async (payload: any) => {
+          const newStatus = payload.new?.status
+          
+          if (newStatus === "completed") {
+            setStatus("processing")
+          } else if (newStatus === "analyzed") {
+            setStatus("ready")
+            await redirectToAdvice(supabase, sessionId)
           }
         }
       )
@@ -106,79 +124,47 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
           filter: `session_id=eq.${sessionId}`,
         },
         async () => {
-          // Check if both pieces of advice exist and redirect to creator's advice
-          const { data: advice } = await supabase
-            .from("advice")
-            .select("id, user_id")
-            .eq("session_id", sessionId)
-
-          if (advice && advice.length >= 2) {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user) {
-              const userAdvice = advice.find(a => a.user_id === user.id)
-              if (userAdvice) {
-                router.push(`/advice/${userAdvice.id}`)
-              }
-            }
-          }
+          // When advice is inserted, try to redirect
+          setStatus("ready")
+          await redirectToAdvice(supabase, sessionId)
         }
       )
       .subscribe()
-    } catch (error) {
-      // Realtime failed, will use polling fallback
-    }
 
-    // Fallback: poll every 3 seconds if realtime isn't working
+    // Polling fallback - check every 2 seconds
     const pollInterval = setInterval(async () => {
+      // First check session status
       const { data: sessionData } = await supabase
         .from("sessions")
         .select("status")
         .eq("id", sessionId)
         .single()
 
-      if (sessionData) {
-        if (sessionData.status === "analyzed") {
+      if (!sessionData) return
+
+      if (sessionData.status === "completed" && status !== "processing") {
+        setStatus("processing")
+      }
+
+      if (sessionData.status === "analyzed") {
+        setStatus("ready")
+        const redirected = await redirectToAdvice(supabase, sessionId)
+        if (redirected) {
           clearInterval(pollInterval)
-          router.push(`/session/${sessionId}/advice`)
-        } else if (sessionData.status === "completed") {
-          router.push(`/session/${sessionId}/processing`)
         }
       }
-
-      // Also check for advice and redirect to user's unique advice
-      const { data: advice } = await supabase
-        .from("advice")
-        .select("id, user_id")
-        .eq("session_id", sessionId)
-
-      if (advice && advice.length >= 2) {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          const userAdvice = advice.find(a => a.user_id === user.id)
-          if (userAdvice) {
-            clearInterval(pollInterval)
-            router.push(`/advice/${userAdvice.id}`)
-          }
-        }
-      }
-    }, 3000)
+    }, 2000)
 
     return () => {
       clearInterval(pollInterval)
-      if (channel) {
-        try {
-          supabase.removeChannel(channel)
-        } catch (error) {
-          // Ignore cleanup errors
-        }
-      }
+      supabase.removeChannel(channel)
     }
-  }, [sessionId, router])
+  }, [sessionId, router, status])
 
   if (isLoading || !session) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-rose-50 to-orange-50 flex items-center justify-center">
-        <p className="text-gray-600">Loading...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-rose-500" />
       </div>
     )
   }
@@ -197,9 +183,13 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
             Now it's time for {session.partner_name} to share their perspective
           </CardDescription>
         </CardHeader>
+        
         <CardContent className="space-y-6">
+          {/* Share Link Section */}
           <div className="bg-rose-50 p-6 rounded-lg border border-rose-200">
-            <Label className="text-sm font-medium text-gray-700 mb-2 block">Share this link with your partner:</Label>
+            <p className="text-sm font-medium text-gray-700 mb-2">
+              Send this link to {session.partner_name}:
+            </p>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -211,19 +201,139 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
             </div>
           </div>
 
+          {/* Status Indicator */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <h3 className="font-medium text-gray-900 mb-4">Status</h3>
+            
+            <div className="space-y-3">
+              {/* Step 1 */}
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  status === "waiting" 
+                    ? "bg-rose-500 text-white" 
+                    : "bg-green-500 text-white"
+                }`}>
+                  {status === "waiting" ? (
+                    <Clock className="h-4 w-4" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className={`font-medium ${status === "waiting" ? "text-rose-600" : "text-green-600"}`}>
+                    Waiting for {session.partner_name}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {status === "waiting" 
+                      ? "They need to open the link and share their perspective"
+                      : "Partner has submitted their response"
+                    }
+                  </p>
+                </div>
+                {status === "waiting" && (
+                  <Loader2 className="h-5 w-5 animate-spin text-rose-400" />
+                )}
+              </div>
+
+              {/* Step 2 */}
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  status === "processing"
+                    ? "bg-blue-500 text-white"
+                    : status === "ready"
+                      ? "bg-green-500 text-white"
+                      : "bg-gray-200 text-gray-400"
+                }`}>
+                  {status === "ready" ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : status === "processing" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <span className="text-sm">2</span>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className={`font-medium ${
+                    status === "processing" 
+                      ? "text-blue-600" 
+                      : status === "ready"
+                        ? "text-green-600"
+                        : "text-gray-400"
+                  }`}>
+                    Generating personalized advice
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {status === "processing"
+                      ? "Our AI is analyzing both perspectives..."
+                      : status === "ready"
+                        ? "Your personalized advice is ready!"
+                        : "Will start after partner responds"
+                    }
+                  </p>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  status === "ready"
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-200 text-gray-400"
+                }`}>
+                  {status === "ready" ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : (
+                    <span className="text-sm">3</span>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className={`font-medium ${status === "ready" ? "text-green-600" : "text-gray-400"}`}>
+                    View your advice
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {status === "ready"
+                      ? adviceId ? "Click below to view your advice" : "Redirecting you now..."
+                      : "You'll be redirected automatically"
+                    }
+                  </p>
+                </div>
+                {status === "ready" && !adviceId && (
+                  <Loader2 className="h-5 w-5 animate-spin text-green-500" />
+                )}
+              </div>
+            </div>
+            
+            {/* View Advice Button when ready */}
+            {status === "ready" && adviceId && (
+              <Link href={`/advice/${adviceId}`}>
+                <Button className="w-full bg-green-500 hover:bg-green-600 mt-4">
+                  View Your Personalized Advice
+                </Button>
+              </Link>
+            )}
+            
+            {/* Show dashboard link when advice is ready but can't redirect */}
+            {status === "ready" && !adviceId && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Your advice is ready!</strong> If you're not redirected automatically, 
+                  please visit your <Link href="/dashboard" className="underline font-medium">Dashboard</Link> to view your personalized advice.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Info Box */}
           <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
             <p className="text-sm text-amber-900">
-              <strong>What happens next?</strong> Once {session.partner_name} completes their response, we'll generate
-              personalized advice for both of you. You'll each receive feedback tailored to your perspective.
+              <strong>💡 How it works:</strong> This page updates automatically. Once {session.partner_name} completes 
+              their response, you'll be redirected to your personalized advice. Each of you receives different advice 
+              tailored to your perspective.
             </p>
           </div>
 
+          {/* Action Buttons */}
           <div className="flex flex-col gap-3">
-            <Link href={`/session/${sessionId}/processing`}>
-              <Button className="w-full bg-blue-500 hover:bg-blue-600">
-                Check Status
-              </Button>
-            </Link>
             <Link href="/dashboard">
               <Button variant="outline" className="w-full bg-transparent">
                 Go to Dashboard
@@ -241,6 +351,3 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
   )
 }
 
-function Label({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <label className={className}>{children}</label>
-}
