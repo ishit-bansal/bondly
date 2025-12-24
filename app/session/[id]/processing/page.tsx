@@ -134,7 +134,7 @@ export default function ProcessingPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-rose-50 to-orange-50 flex items-center justify-center px-4">
-      <Card className="max-w-md border-rose-200 bg-white/80 backdrop-blur">
+      <Card className="w-full max-w-md border-rose-200 bg-white/80 backdrop-blur">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <Heart className="h-16 w-16 text-rose-500 animate-pulse" />
@@ -142,7 +142,7 @@ export default function ProcessingPage({ params }: { params: Promise<{ id: strin
           <CardTitle className="text-2xl">Analyzing Your Responses</CardTitle>
           <CardDescription>We're generating personalized advice for both of you...</CardDescription>
         </CardHeader>
-        <CardContent className="flex justify-center">
+        <CardContent className="flex justify-center pb-6">
           <Loader2 className="h-8 w-8 animate-spin text-rose-500" />
         </CardContent>
       </Card>
