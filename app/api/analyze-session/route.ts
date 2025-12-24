@@ -3,6 +3,21 @@ import { NextResponse } from "next/server"
 
 export const dynamic = 'force-dynamic'
 
+// Validate UUID format
+function isValidUUID(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return uuidRegex.test(str)
+}
+
+// Sanitize text input - remove potential XSS and limit length
+function sanitizeText(text: string, maxLength = 5000): string {
+  if (!text || typeof text !== 'string') return ''
+  return text
+    .slice(0, maxLength)
+    .replace(/<[^>]*>/g, '') // Remove HTML tags
+    .trim()
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -10,6 +25,11 @@ export async function POST(request: Request) {
     
     if (!sessionId) {
       return NextResponse.json({ error: "Session ID required" }, { status: 400 })
+    }
+
+    // Validate UUID format to prevent injection
+    if (!isValidUUID(sessionId)) {
+      return NextResponse.json({ error: "Invalid session ID format" }, { status: 400 })
     }
 
     const supabase = await createClient(true)
@@ -23,6 +43,11 @@ export async function POST(request: Request) {
 
     if (sessionError || !sessionData) {
       return NextResponse.json({ error: "Session not found" }, { status: 404 })
+    }
+
+    // Security check: Prevent re-analysis of already analyzed sessions
+    if (sessionData.status === "analyzed") {
+      return NextResponse.json({ error: "Session already analyzed" }, { status: 400 })
     }
 
     // Get responses
@@ -103,8 +128,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to save advice" }, { status: 500 })
     }
 
-    // Update session status asynchronously
-    supabase
+    // Update session status
+    await supabase
       .from("sessions")
       .update({ status: "analyzed" })
       .eq("id", sessionId)
@@ -142,17 +167,36 @@ async function generateAdvice(
     throw new Error("GOOGLE_GENERATIVE_AI_API_KEY not set")
   }
 
+  // Sanitize all user inputs to prevent prompt injection
+  const sanitizedTheirSituation = sanitizeText(theirResponse.situation_description, 2000)
+  const sanitizedTheirFeelings = sanitizeText(theirResponse.feelings, 1000)
+  const sanitizedTheirEmotions = (theirResponse.emotional_state || [])
+    .filter((e: any) => typeof e === 'string')
+    .map((e: string) => sanitizeText(e, 50))
+    .join(", ") || "Not specified"
+  
+  const sanitizedPartnerSituation = sanitizeText(partnerResponse.situation_description, 2000)
+  const sanitizedPartnerFeelings = sanitizeText(partnerResponse.feelings, 1000)
+  const sanitizedPartnerEmotions = (partnerResponse.emotional_state || [])
+    .filter((e: any) => typeof e === 'string')
+    .map((e: string) => sanitizeText(e, 50))
+    .join(", ") || "Not specified"
+  
+  // Sanitize names
+  const safeName = sanitizeText(theirName, 50)
+  const safePartnerName = sanitizeText(partnerName, 50)
+
   const prompt = `You are a compassionate relationship counselor. Two partners shared their perspectives:
 
-${theirName}'s situation: ${theirResponse.situation_description}
-${theirName}'s feelings: ${theirResponse.feelings}
-${theirName}'s emotions: ${(theirResponse.emotional_state || []).join(", ") || "Not specified"}
+${safeName}'s situation: ${sanitizedTheirSituation}
+${safeName}'s feelings: ${sanitizedTheirFeelings}
+${safeName}'s emotions: ${sanitizedTheirEmotions}
 
-${partnerName}'s situation: ${partnerResponse.situation_description}
-${partnerName}'s feelings: ${partnerResponse.feelings}
-${partnerName}'s emotions: ${(partnerResponse.emotional_state || []).join(", ") || "Not specified"}
+${safePartnerName}'s situation: ${sanitizedPartnerSituation}
+${safePartnerName}'s feelings: ${sanitizedPartnerFeelings}
+${safePartnerName}'s emotions: ${sanitizedPartnerEmotions}
 
-Provide concise, empathetic advice for ${theirName}. Keep it brief and actionable (max 150 words for advice).
+Provide concise, empathetic advice for ${safeName}. Keep it brief and actionable (max 150 words for advice).
 
 IMPORTANT: Return ONLY valid JSON, no explanations, no markdown, no code blocks. Just the raw JSON object:
 {"advice": "1-2 short paragraphs of advice", "actionSteps": ["step1", "step2", "step3"], "conversationStarters": ["starter1", "starter2", "starter3"]}`
