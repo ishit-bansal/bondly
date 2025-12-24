@@ -1,136 +1,89 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
 import { Heart, Loader2 } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useState, Suspense } from "react"
+import Link from "next/link"
 
-export default function ProcessingPage({ params }: { params: Promise<{ id: string }> }) {
-  const [sessionId, setSessionId] = useState<string>("")
+function ProcessingContent({ sessionId }: { sessionId: string }) {
   const router = useRouter()
-
-  useEffect(() => {
-    params.then((p) => setSessionId(p.id))
-  }, [params])
+  const searchParams = useSearchParams()
+  const [adviceId, setAdviceId] = useState<string | null>(null)
+  
+  // Determine role from query param or default to trying both
+  const roleParam = searchParams.get("role")
 
   useEffect(() => {
     if (!sessionId) return
 
-    const supabase = createClient()
+    let isRedirecting = false
 
-    // Check if advice already exists and redirect to user's unique advice
-    supabase
-      .from("advice")
-      .select("id, user_id")
-      .eq("session_id", sessionId)
-      .then(async ({ data: advice }) => {
-        if (advice && advice.length >= 2) {
-          // Get current user to find their advice
-          const { data: { user } } = await supabase.auth.getUser()
-          if (user) {
-            const userAdvice = advice.find(a => a.user_id === user.id)
-            if (userAdvice) {
-              router.push(`/advice/${userAdvice.id}`)
-              return
-            }
-          }
-        }
-      })
+    // Try to get advice ID using the API (bypasses RLS issues)
+    const fetchAdviceId = async () => {
+      if (isRedirecting) return
 
-    // Subscribe to realtime updates for advice creation
-    let channel: any = null
-    try {
-      channel = supabase
-        .channel(`advice-${sessionId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "advice",
-            filter: `session_id=eq.${sessionId}`,
-          },
-        async () => {
-          // Check if both pieces of advice exist and redirect to user's advice
-          const { data: advice } = await supabase
-            .from("advice")
-            .select("id, user_id")
-            .eq("session_id", sessionId)
+      // If role is specified, only check that role
+      const rolesToCheck = roleParam 
+        ? [roleParam === "creator"] 
+        : [true, false] // Check both if not specified
 
-          if (advice && advice.length >= 2) {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user) {
-              const userAdvice = advice.find(a => a.user_id === user.id)
-              if (userAdvice) {
-                router.push(`/advice/${userAdvice.id}`)
+      for (const isCreator of rolesToCheck) {
+        try {
+          const response = await fetch(
+            `/api/get-advice-id?sessionId=${sessionId}&isCreator=${isCreator}`
+          )
+          if (response.ok) {
+            const data = await response.json()
+            if (data.adviceId) {
+              setAdviceId(data.adviceId)
+              if (!isRedirecting) {
+                isRedirecting = true
+                router.push(`/advice/${data.adviceId}`)
               }
+              return true
             }
           }
+        } catch (error) {
+          console.error("Error fetching advice:", error)
         }
-      )
+      }
+      return false
+    }
+
+    // Initial check
+    fetchAdviceId()
+
+    // Also listen to session status changes
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`processing-${sessionId}`)
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "UPDATE",
           schema: "public",
           table: "sessions",
           filter: `id=eq.${sessionId}`,
         },
-        async (payload) => {
-          if (payload.new && payload.new.status === "analyzed") {
-            // Get user's advice when session is analyzed
-            const { data: advice } = await supabase
-              .from("advice")
-              .select("id, user_id")
-              .eq("session_id", sessionId)
-            
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user && advice) {
-              const userAdvice = advice.find(a => a.user_id === user.id)
-              if (userAdvice) {
-                router.push(`/advice/${userAdvice.id}`)
-              }
-            }
+        async (payload: any) => {
+          if (payload.new?.status === "analyzed") {
+            await fetchAdviceId()
           }
         }
       )
       .subscribe()
-    } catch (error) {
-      // Realtime failed, will use polling fallback
-    }
 
-    // Fallback: poll every 2 seconds as backup
-    const intervalId = setInterval(async () => {
-      const { data: advice } = await supabase
-        .from("advice")
-        .select("id, user_id")
-        .eq("session_id", sessionId)
+    // Poll every 2 seconds
+    const intervalId = setInterval(fetchAdviceId, 2000)
 
-      if (advice && advice.length >= 2) {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          const userAdvice = advice.find(a => a.user_id === user.id)
-          if (userAdvice) {
-            clearInterval(intervalId)
-            router.push(`/advice/${userAdvice.id}`)
-          }
-        }
-      }
-    }, 2000)
-
-    // Cleanup on unmount
     return () => {
       clearInterval(intervalId)
-      if (channel) {
-        try {
-          supabase.removeChannel(channel)
-        } catch (error) {
-          // Ignore cleanup errors
-        }
-      }
+      supabase.removeChannel(channel)
     }
-  }, [sessionId, router])
+  }, [sessionId, router, roleParam])
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-rose-50 to-orange-50 flex items-center justify-center px-4">
@@ -142,10 +95,44 @@ export default function ProcessingPage({ params }: { params: Promise<{ id: strin
           <CardTitle className="text-2xl">Analyzing Your Responses</CardTitle>
           <CardDescription>We're generating personalized advice for both of you...</CardDescription>
         </CardHeader>
-        <CardContent className="flex justify-center pb-6">
-          <Loader2 className="h-8 w-8 animate-spin text-rose-500" />
+        <CardContent className="flex flex-col items-center gap-4 pb-6">
+          {adviceId ? (
+            <Link href={`/advice/${adviceId}`}>
+              <Button className="bg-green-500 hover:bg-green-600">
+                View Your Advice
+              </Button>
+            </Link>
+          ) : (
+            <Loader2 className="h-8 w-8 animate-spin text-rose-500" />
+          )}
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function ProcessingPage({ params }: { params: Promise<{ id: string }> }) {
+  const [sessionId, setSessionId] = useState<string>("")
+
+  useEffect(() => {
+    params.then((p) => setSessionId(p.id))
+  }, [params])
+
+  if (!sessionId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-rose-50 to-orange-50 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-rose-500" />
+      </div>
+    )
+  }
+
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-rose-50 to-orange-50 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-rose-500" />
+      </div>
+    }>
+      <ProcessingContent sessionId={sessionId} />
+    </Suspense>
   )
 }
