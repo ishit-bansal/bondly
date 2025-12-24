@@ -1,6 +1,5 @@
 "use client"
 
-import type React from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -16,7 +15,7 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
   const [session, setSession] = useState<Session | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [status, setStatus] = useState<"waiting" | "processing" | "ready">("waiting")
-  const [adviceId, setAdviceId] = useState<string | null>(null)
+  const [creatorAdviceId, setCreatorAdviceId] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -27,6 +26,31 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
     if (!sessionId) return
 
     const supabase = createClient()
+    let isRedirecting = false
+
+    // Fetch the CREATOR's advice specifically (not based on current auth)
+    // This is the key fix - we look up by is_creator=true, not by user_id
+    const fetchCreatorAdvice = async () => {
+      // Use a server-side API to get the creator's advice ID
+      // This bypasses the RLS issue where auth might be overwritten
+      try {
+        const response = await fetch(`/api/get-advice-id?sessionId=${sessionId}&isCreator=true`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.adviceId) {
+            setCreatorAdviceId(data.adviceId)
+            if (!isRedirecting) {
+              isRedirecting = true
+              router.push(`/advice/${data.adviceId}`)
+            }
+            return true
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching creator advice:", error)
+      }
+      return false
+    }
 
     // Fetch initial session and check status
     const fetchSession = async () => {
@@ -51,44 +75,8 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
         setStatus("processing")
       } else if (data.status === "analyzed") {
         setStatus("ready")
-        // Redirect to advice
-        await redirectToAdvice(supabase, sessionId)
+        await fetchCreatorAdvice()
       }
-    }
-
-    // Helper function to redirect to user's advice
-    const redirectToAdvice = async (supabase: any, sessionId: string) => {
-      const { data: { user } } = await supabase.auth.getUser()
-
-      // Query advice - might be blocked by RLS if user not authenticated
-      const { data: advice } = await supabase
-        .from("advice")
-        .select("id, user_id, is_creator")
-        .eq("session_id", sessionId)
-
-      if (advice && advice.length > 0) {
-        // First try to find advice by user_id
-        if (user) {
-          const userAdvice = advice.find((a: any) => a.user_id === user.id)
-          if (userAdvice) {
-            router.push(`/advice/${userAdvice.id}`)
-            return true
-          }
-        }
-        
-        // Fallback: creator's advice (this is the share page, so user is creator)
-        const creatorAdvice = advice.find((a: any) => a.is_creator === true)
-        if (creatorAdvice) {
-          setAdviceId(creatorAdvice.id)
-          if (user) {
-            router.push(`/advice/${creatorAdvice.id}`)
-            return true
-          }
-        }
-      }
-      
-      // If RLS blocked access but session is analyzed, show login prompt
-      return false
     }
 
     fetchSession()
@@ -111,29 +99,19 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
             setStatus("processing")
           } else if (newStatus === "analyzed") {
             setStatus("ready")
-            await redirectToAdvice(supabase, sessionId)
+            await fetchCreatorAdvice()
           }
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "advice",
-          filter: `session_id=eq.${sessionId}`,
-        },
-        async () => {
-          // When advice is inserted, try to redirect
-          setStatus("ready")
-          await redirectToAdvice(supabase, sessionId)
         }
       )
       .subscribe()
 
     // Polling fallback - check every 2 seconds
     const pollInterval = setInterval(async () => {
-      // First check session status
+      if (isRedirecting) {
+        clearInterval(pollInterval)
+        return
+      }
+
       const { data: sessionData } = await supabase
         .from("sessions")
         .select("status")
@@ -148,7 +126,7 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
 
       if (sessionData.status === "analyzed") {
         setStatus("ready")
-        const redirected = await redirectToAdvice(supabase, sessionId)
+        const redirected = await fetchCreatorAdvice()
         if (redirected) {
           clearInterval(pollInterval)
         }
@@ -292,34 +270,24 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
                   </p>
                   <p className="text-sm text-gray-500">
                     {status === "ready"
-                      ? adviceId ? "Click below to view your advice" : "Redirecting you now..."
+                      ? creatorAdviceId ? "Click below to view" : "Redirecting you now..."
                       : "You'll be redirected automatically"
                     }
                   </p>
                 </div>
-                {status === "ready" && !adviceId && (
+                {status === "ready" && !creatorAdviceId && (
                   <Loader2 className="h-5 w-5 animate-spin text-green-500" />
                 )}
               </div>
             </div>
             
             {/* View Advice Button when ready */}
-            {status === "ready" && adviceId && (
-              <Link href={`/advice/${adviceId}`}>
+            {status === "ready" && creatorAdviceId && (
+              <Link href={`/advice/${creatorAdviceId}`}>
                 <Button className="w-full bg-green-500 hover:bg-green-600 mt-4">
                   View Your Personalized Advice
                 </Button>
               </Link>
-            )}
-            
-            {/* Show dashboard link when advice is ready but can't redirect */}
-            {status === "ready" && !adviceId && (
-              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <strong>Your advice is ready!</strong> If you're not redirected automatically, 
-                  please visit your <Link href="/dashboard" className="underline font-medium">Dashboard</Link> to view your personalized advice.
-                </p>
-              </div>
             )}
           </div>
 
@@ -350,4 +318,3 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
     </div>
   )
 }
-
