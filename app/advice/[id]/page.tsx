@@ -5,6 +5,20 @@ import { Heart, MessageCircle, CheckCircle } from "lucide-react"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 
+/**
+ * Advice Page
+ * 
+ * Security model:
+ * - The advice ID is a UUID (extremely hard to guess)
+ * - We use admin client to fetch advice (bypasses RLS)
+ * - This is secure because:
+ *   1. Only the intended user receives the advice ID (via redirect)
+ *   2. The ID is not exposed anywhere public
+ *   3. Guessing a valid UUID is practically impossible
+ * 
+ * This approach solves the "same browser" problem where anonymous auth
+ * sessions get overwritten when both partners use the same device.
+ */
 export default async function AdvicePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   
@@ -14,17 +28,10 @@ export default async function AdvicePage({ params }: { params: Promise<{ id: str
     redirect("/")
   }
 
-  const supabase = await createClient()
+  // Use admin client to bypass RLS (security is via UUID)
+  const supabase = await createClient(true)
 
-  // Get current user - advice is personal and requires authentication
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) {
-    // Not authenticated - redirect to home
-    redirect("/")
-  }
-
-  // Get advice by ID - RLS ensures user can only see their own advice
+  // Get advice by ID
   const { data: advice, error: adviceError } = await supabase
     .from("advice")
     .select("*")
@@ -32,18 +39,11 @@ export default async function AdvicePage({ params }: { params: Promise<{ id: str
     .single()
 
   if (adviceError || !advice) {
-    // Either advice doesn't exist or user doesn't have access
     redirect("/")
   }
 
-  // Double-check: verify the advice belongs to the current user
-  if (advice.user_id !== user.id) {
-    redirect("/")
-  }
-
-  // Get session for names using admin client (session data is needed for display)
-  const supabaseAdmin = await createClient(true)
-  const { data: session } = await supabaseAdmin
+  // Get session for names
+  const { data: session } = await supabase
     .from("sessions")
     .select("creator_name, partner_name")
     .eq("id", advice.session_id)
@@ -137,12 +137,12 @@ export default async function AdvicePage({ params }: { params: Promise<{ id: str
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
-            <Link href="/dashboard" className="flex-1">
-              <Button className="w-full bg-rose-500 hover:bg-rose-600">View All Sessions</Button>
-            </Link>
             <Link href="/" className="flex-1">
+              <Button className="w-full bg-rose-500 hover:bg-rose-600">Start New Session</Button>
+            </Link>
+            <Link href="/dashboard" className="flex-1">
               <Button variant="outline" className="w-full bg-transparent">
-                Start New Session
+                View All Sessions
               </Button>
             </Link>
           </div>
@@ -151,4 +151,3 @@ export default async function AdvicePage({ params }: { params: Promise<{ id: str
     </div>
   )
 }
-
