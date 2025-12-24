@@ -140,8 +140,9 @@ export default function NewSessionPage() {
                   id="yourName"
                   placeholder="e.g., Alex"
                   value={yourName}
-                  onChange={(e) => setYourName(e.target.value)}
+                  onChange={(e) => setYourName(e.target.value.slice(0, 50))}
                   required
+                  maxLength={50}
                 />
               </div>
 
@@ -151,8 +152,9 @@ export default function NewSessionPage() {
                   id="partnerName"
                   placeholder="e.g., Jordan"
                   value={partnerName}
-                  onChange={(e) => setPartnerName(e.target.value)}
+                  onChange={(e) => setPartnerName(e.target.value.slice(0, 50))}
                   required
+                  maxLength={50}
                 />
               </div>
 
@@ -162,11 +164,13 @@ export default function NewSessionPage() {
                   id="situation"
                   placeholder="What happened? What's the issue you're facing?"
                   value={situation}
-                  onChange={(e) => setSituation(e.target.value)}
+                  onChange={(e) => setSituation(e.target.value.slice(0, 2000))}
                   required
                   rows={5}
                   className="resize-none"
+                  maxLength={2000}
                 />
+                <p className="text-xs text-gray-500 text-right">{situation.length}/2000</p>
               </div>
 
               <div className="space-y-2">
@@ -175,11 +179,13 @@ export default function NewSessionPage() {
                   id="feelings"
                   placeholder="Express your emotions and thoughts..."
                   value={feelings}
-                  onChange={(e) => setFeelings(e.target.value)}
+                  onChange={(e) => setFeelings(e.target.value.slice(0, 1000))}
                   required
                   rows={4}
                   className="resize-none"
+                  maxLength={1000}
                 />
+                <p className="text-xs text-gray-500 text-right">{feelings.length}/1000</p>
               </div>
 
               <div className="space-y-3">
