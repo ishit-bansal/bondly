@@ -68,11 +68,17 @@ export default async function DashboardPage() {
                         {session.status === "completed" && <Clock className="h-5 w-5 text-blue-500" />}
                       </CardTitle>
                       <CardDescription className="mt-1">
-                        Created{" "}
                         {new Date(session.created_at).toLocaleDateString("en-US", {
+                          weekday: "long",
                           month: "long",
                           day: "numeric",
                           year: "numeric",
+                        })}{" "}
+                        at{" "}
+                        {new Date(session.created_at).toLocaleTimeString("en-US", {
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
                         })}
                       </CardDescription>
                     </div>
