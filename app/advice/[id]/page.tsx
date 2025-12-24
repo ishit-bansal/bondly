@@ -7,24 +7,45 @@ import Link from "next/link"
 
 export default async function AdvicePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  
+  // Validate UUID format to prevent injection
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!uuidRegex.test(id)) {
+    redirect("/")
+  }
+
   const supabase = await createClient()
 
-  // Get advice by ID - use service role to bypass RLS
-  const supabaseAdmin = await createClient(true)
-  const { data: advice } = await supabaseAdmin
+  // Get current user - advice is personal and requires authentication
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) {
+    // Not authenticated - redirect to home
+    redirect("/")
+  }
+
+  // Get advice by ID - RLS ensures user can only see their own advice
+  const { data: advice, error: adviceError } = await supabase
     .from("advice")
     .select("*")
     .eq("id", id)
     .single()
 
-  if (!advice) {
+  if (adviceError || !advice) {
+    // Either advice doesn't exist or user doesn't have access
     redirect("/")
   }
 
-  // Get session for names
+  // Double-check: verify the advice belongs to the current user
+  if (advice.user_id !== user.id) {
+    redirect("/")
+  }
+
+  // Get session for names using admin client (session data is needed for display)
+  const supabaseAdmin = await createClient(true)
   const { data: session } = await supabaseAdmin
     .from("sessions")
-    .select("*")
+    .select("creator_name, partner_name")
     .eq("id", advice.session_id)
     .single()
 
