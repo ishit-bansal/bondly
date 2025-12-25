@@ -196,7 +196,7 @@ ${safePartnerName}'s situation: ${sanitizedPartnerSituation}
 ${safePartnerName}'s feelings: ${sanitizedPartnerFeelings}
 ${safePartnerName}'s emotions: ${sanitizedPartnerEmotions}
 
-Provide concise, empathetic advice for ${safeName}. Keep it brief and actionable (max 150 words for advice).
+Provide concise, empathetic advice for ${safeName}. Keep it brief and actionable (max 150 words for advice). Use simple human language.
 
 IMPORTANT: Return ONLY valid JSON, no explanations, no markdown, no code blocks. Just the raw JSON object:
 {"advice": "1-2 short paragraphs of advice", "actionSteps": ["step1", "step2", "step3"], "conversationStarters": ["starter1", "starter2", "starter3"]}`
