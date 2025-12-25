@@ -1,15 +1,25 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Caveat, Source_Serif_4 } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+// Handwritten font for headings and accents
+const caveat = Caveat({ 
+  subsets: ["latin"],
+  variable: '--font-handwritten'
+})
+
+// Elegant serif for body text - diary feel
+const sourceSerif = Source_Serif_4({ 
+  subsets: ["latin"],
+  variable: '--font-serif'
+})
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.app',
+  title: 'Bondly - Your Safe Space for Relationship Growth',
+  description: 'A private, secure space where couples can share perspectives and receive personalized guidance. Your conversations are encrypted and automatically deleted after 24 hours.',
+  generator: 'Bondly',
+  keywords: ['relationship', 'couples', 'advice', 'communication', 'growth', 'private', 'secure'],
   icons: {
     icon: [
       {
@@ -36,7 +46,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`font-sans antialiased`}>
+      <body className={`${caveat.variable} ${sourceSerif.variable} font-serif antialiased`}>
         {children}
         <Analytics />
       </body>
