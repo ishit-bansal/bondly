@@ -1,9 +1,8 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
-import { Heart, Loader2 } from "lucide-react"
+import { BookOpen, Loader2 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
@@ -13,7 +12,6 @@ function ProcessingContent({ sessionId }: { sessionId: string }) {
   const searchParams = useSearchParams()
   const [adviceId, setAdviceId] = useState<string | null>(null)
   
-  // Determine role from query param or default to trying both
   const roleParam = searchParams.get("role")
 
   useEffect(() => {
@@ -21,14 +19,12 @@ function ProcessingContent({ sessionId }: { sessionId: string }) {
 
     let isRedirecting = false
 
-    // Try to get advice ID using the API (bypasses RLS issues)
     const fetchAdviceId = async () => {
       if (isRedirecting) return
 
-      // If role is specified, only check that role
       const rolesToCheck = roleParam 
         ? [roleParam === "creator"] 
-        : [true, false] // Check both if not specified
+        : [true, false]
 
       for (const isCreator of rolesToCheck) {
         try {
@@ -53,10 +49,8 @@ function ProcessingContent({ sessionId }: { sessionId: string }) {
       return false
     }
 
-    // Initial check
     fetchAdviceId()
 
-    // Also listen to session status changes
     const supabase = createClient()
     const channel = supabase
       .channel(`processing-${sessionId}`)
@@ -76,7 +70,6 @@ function ProcessingContent({ sessionId }: { sessionId: string }) {
       )
       .subscribe()
 
-    // Poll every 2 seconds
     const intervalId = setInterval(fetchAdviceId, 2000)
 
     return () => {
@@ -86,27 +79,38 @@ function ProcessingContent({ sessionId }: { sessionId: string }) {
   }, [sessionId, router, roleParam])
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-rose-50 to-orange-50 flex items-center justify-center px-4">
-      <Card className="w-full max-w-md border-rose-200 bg-white/80 backdrop-blur">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <Heart className="h-16 w-16 text-rose-500 animate-pulse" />
+    <div className="min-h-screen bg-[var(--paper)] paper-texture flex items-center justify-center px-4">
+      <div className="journal-card rounded-lg p-8 max-w-md w-full page-shadow text-center">
+        {/* Header */}
+        <div className="flex items-center justify-center gap-2 mb-6">
+          <BookOpen className="h-6 w-6 text-[var(--accent-warm)]" />
+          <span className="handwritten text-2xl text-[var(--ink)]">Bondly</span>
+        </div>
+
+        <h1 className="handwritten text-3xl text-[var(--ink)] mb-4">
+          Creating your guidance...
+        </h1>
+        
+        <p className="text-[var(--ink-light)] mb-6">
+          We're thoughtfully preparing personalized insights for both of you. This usually takes about 10 seconds.
+        </p>
+
+        {adviceId ? (
+          <Link href={`/advice/${adviceId}`}>
+            <Button className="btn-warm py-4 px-8 handwritten text-lg">
+              Read Your Guidance
+            </Button>
+          </Link>
+        ) : (
+          <div className="flex justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-[var(--accent-warm)]" />
           </div>
-          <CardTitle className="text-2xl">Analyzing Your Responses</CardTitle>
-          <CardDescription>We're generating personalized advice for both of you...</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center gap-4 pb-6">
-          {adviceId ? (
-            <Link href={`/advice/${adviceId}`}>
-              <Button className="bg-green-500 hover:bg-green-600">
-                View Your Advice
-              </Button>
-            </Link>
-          ) : (
-            <Loader2 className="h-8 w-8 animate-spin text-rose-500" />
-          )}
-        </CardContent>
-      </Card>
+        )}
+
+        <p className="text-xs text-[var(--ink-faded)] mt-6">
+          You'll be redirected automatically when ready
+        </p>
+      </div>
     </div>
   )
 }
@@ -120,16 +124,16 @@ export default function ProcessingPage({ params }: { params: Promise<{ id: strin
 
   if (!sessionId) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-rose-50 to-orange-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-rose-500" />
+      <div className="min-h-screen bg-[var(--paper)] paper-texture flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--accent-warm)]" />
       </div>
     )
   }
 
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-b from-rose-50 to-orange-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-rose-500" />
+      <div className="min-h-screen bg-[var(--paper)] paper-texture flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--accent-warm)]" />
       </div>
     }>
       <ProcessingContent sessionId={sessionId} />
