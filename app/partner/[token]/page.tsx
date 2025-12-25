@@ -2,14 +2,14 @@
 
 import type React from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { createClient } from "@/lib/supabase/client"
+import { encryptText } from "@/lib/encryption"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Heart } from "lucide-react"
+import { BookOpen, Lock, Loader2 } from "lucide-react"
 import type { Session } from "@/lib/types"
 
 const emotions = [
@@ -20,7 +20,7 @@ const emotions = [
   "Confused",
   "Anxious",
   "Hopeful",
-  "In Love",
+  "Grateful",
   "Disappointed",
   "Overwhelmed",
 ]
@@ -34,10 +34,19 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [encryptionKey, setEncryptionKey] = useState<string>("")
   const router = useRouter()
 
   useEffect(() => {
     params.then((p) => setToken(p.token))
+    // Get encryption key from URL fragment
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash
+      const keyMatch = hash.match(/key=([^&]+)/)
+      if (keyMatch) {
+        setEncryptionKey(keyMatch[1])
+      }
+    }
   }, [params])
 
   useEffect(() => {
@@ -46,7 +55,7 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
     // Validate token format (UUID)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (!uuidRegex.test(token)) {
-      setError("Invalid session link")
+      setError("This link doesn't look right. Please ask your partner for a new one.")
       setIsLoading(false)
       return
     }
@@ -54,7 +63,6 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
     const fetchSession = async () => {
       const supabase = createClient()
       
-      // Use admin-level access to fetch by share_token (sessions are protected by RLS)
       const { data, error } = await supabase
         .from("sessions")
         .select("*")
@@ -62,19 +70,19 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
         .single()
 
       if (error || !data) {
-        setError("Session not found or link has expired")
+        setError("This session wasn't found or the link has expired. Sessions are automatically deleted after 24 hours for your privacy.")
         setIsLoading(false)
         return
       }
 
       if (data.status === "analyzed") {
-        setError("This session has already been completed. Both partners have received their advice.")
+        setError("This conversation has already been completed. Both partners have received their guidance.")
         setIsLoading(false)
         return
       }
 
       if (data.status === "completed") {
-        setError("Your partner has already submitted their response. Please wait while we generate advice.")
+        setError("You've already shared your perspective. We're generating guidance now...")
         setIsLoading(false)
         return
       }
@@ -87,7 +95,9 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
   }, [token])
 
   const toggleEmotion = (emotion: string) => {
-    setSelectedEmotions((prev) => (prev.includes(emotion) ? prev.filter((e) => e !== emotion) : [...prev, emotion]))
+    setSelectedEmotions((prev) => 
+      prev.includes(emotion) ? prev.filter((e) => e !== emotion) : [...prev, emotion]
+    )
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,35 +112,35 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
 
       // Create anonymous user for partner
       const { data: authData, error: authError } = await supabase.auth.signInAnonymously()
-
       if (authError) throw authError
-      if (!authData.user) throw new Error("Failed to create user")
+      if (!authData.user) throw new Error("Failed to create session")
+
+      // Encrypt data if we have the encryption key
+      let situationData = situation
+      let feelingsData = feelings
+      let emotionsData = selectedEmotions
+
+      if (encryptionKey) {
+        situationData = await encryptText(situation, encryptionKey)
+        feelingsData = await encryptText(feelings, encryptionKey)
+        emotionsData = [await encryptText(JSON.stringify(selectedEmotions), encryptionKey)]
+      }
 
       // Create partner's response
-      const { data: insertedResponse, error: responseError } = await supabase
+      const { error: responseError } = await supabase
         .from("responses")
         .insert({
           session_id: session.id,
           user_id: authData.user.id,
           is_creator: false,
-          situation_description: situation,
-          feelings: feelings,
-          emotional_state: selectedEmotions,
+          situation_description: situationData,
+          feelings: feelingsData,
+          emotional_state: emotionsData,
         })
-        .select()
-        .single()
 
-      if (responseError) {
-        console.error("[Partner] Response insert error:", responseError)
-        throw responseError
-      }
+      if (responseError) throw responseError
 
-      if (!insertedResponse) {
-        console.error("[Partner] No response data returned from insert")
-        throw new Error("Failed to save response")
-      }
-
-      // Small delay to ensure DB consistency
+      // Small delay for DB consistency
       await new Promise(resolve => setTimeout(resolve, 300))
 
       // Update session status
@@ -139,45 +149,42 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
         .update({ status: "completed" })
         .eq("id", session.id)
 
-      if (updateError) {
-        throw updateError
-      }
+      if (updateError) throw updateError
       
       // Trigger AI analysis
       const response = await fetch("/api/analyze-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: session.id }),
+        body: JSON.stringify({ 
+          sessionId: session.id,
+          encryptionKey: encryptionKey || undefined
+        }),
       })
 
       const responseData = await response.json()
 
       if (!response.ok) {
         if (responseData.code === "QUOTA_EXCEEDED" || response.status === 429) {
-          setError("The AI service has reached its daily limit. Your response has been saved. Please check back tomorrow for your personalized advice, or contact support.")
+          setError("We're processing a lot of requests right now. Your response has been saved. Check back soon for your guidance.")
           setTimeout(() => {
             router.push(`/session/${session.id}/processing`)
           }, 3000)
           return
         }
-        throw new Error(responseData.error || "Failed to analyze session")
+        throw new Error(responseData.error || "Failed to generate guidance")
       }
 
-      // Redirect to unique advice page using advice ID
-      if (responseData.adviceIds) {
-        // Partner gets their own unique advice URL
-        const partnerAdviceId = responseData.adviceIds.partner
-        if (partnerAdviceId) {
-          router.push(`/advice/${partnerAdviceId}`)
-          return
-        }
+      // Redirect to partner's unique advice page
+      if (responseData.adviceIds?.partner) {
+        const keyParam = encryptionKey ? `#key=${encryptionKey}` : ''
+        router.push(`/advice/${responseData.adviceIds.partner}${keyParam}`)
+        return
       }
       
-      // Fallback: redirect to processing page
       router.push(`/session/${session.id}/processing`)
     } catch (err) {
-      console.error("[v0] Error submitting response:", err)
-      setError(err instanceof Error ? err.message : "Failed to submit response")
+      console.error("Error submitting response:", err)
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.")
     } finally {
       setIsSubmitting(false)
     }
@@ -185,101 +192,131 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-rose-50 to-orange-50 flex items-center justify-center">
-        <p className="text-gray-600">Loading...</p>
+      <div className="min-h-screen bg-[var(--paper)] paper-texture flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--accent-warm)]" />
       </div>
     )
   }
 
   if (error || !session) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-rose-50 to-orange-50 flex items-center justify-center px-4">
-        <Card className="max-w-md border-rose-200">
-          <CardHeader>
-            <CardTitle>Oops!</CardTitle>
-            <CardDescription>{error || "Something went wrong"}</CardDescription>
-          </CardHeader>
-        </Card>
+      <div className="min-h-screen bg-[var(--paper)] paper-texture flex items-center justify-center px-4">
+        <div className="journal-card rounded-lg p-8 max-w-md page-shadow">
+          <h2 className="handwritten text-2xl text-[var(--ink)] mb-3">Hmm...</h2>
+          <p className="text-[var(--ink-light)]">{error || "Something went wrong"}</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-rose-50 to-orange-50 py-12 px-4">
+    <div className="min-h-screen bg-[var(--paper)] paper-texture py-12 px-4">
       <div className="container mx-auto max-w-2xl">
-        <div className="text-center mb-8">
-          <Heart className="h-12 w-12 text-rose-500 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-gray-900">Hi {session.partner_name}!</h1>
-          <p className="text-gray-600 mt-2">
-            {session.creator_name} wants to work through something with you. Share your perspective below.
-          </p>
+        {/* Header */}
+        <div className="flex items-center justify-center mb-8">
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-6 w-6 text-[var(--accent-warm)]" />
+            <span className="handwritten text-2xl text-[var(--ink)]">Bondly</span>
+          </div>
         </div>
 
-        <Card className="border-rose-200 bg-white/80 backdrop-blur">
-          <CardHeader>
-            <CardTitle>Your Turn to Share</CardTitle>
-            <CardDescription>
-              Your responses will remain private. Both of you will receive personalized advice.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="situation">Describe the situation from your perspective</Label>
-                <Textarea
-                  id="situation"
-                  placeholder="What happened? What's your view of the issue?"
-                  value={situation}
-                  onChange={(e) => setSituation(e.target.value.slice(0, 2000))}
-                  required
-                  rows={5}
-                  className="resize-none"
-                  maxLength={2000}
-                />
-                <p className="text-xs text-gray-500 text-right">{situation.length}/2000</p>
+        {/* Main Card */}
+        <div className="journal-card rounded-lg p-8 pl-12 page-shadow">
+          <div className="mb-6">
+            <h1 className="handwritten text-4xl text-[var(--ink)] mb-2">
+              Hi {session.partner_name} ♡
+            </h1>
+            <p className="text-[var(--ink-light)]">
+              {session.creator_name} wants to understand things better. Share your side of the story.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Situation */}
+            <div className="space-y-2">
+              <Label htmlFor="situation" className="text-[var(--ink)]">
+                What's your perspective on this?
+              </Label>
+              <Textarea
+                id="situation"
+                placeholder="Share your side of the story..."
+                value={situation}
+                onChange={(e) => setSituation(e.target.value.slice(0, 2000))}
+                required
+                rows={6}
+                className="resize-none handwritten text-lg leading-relaxed"
+                maxLength={2000}
+              />
+              <p className="text-xs text-[var(--ink-faded)] text-right">{situation.length}/2000</p>
+            </div>
+
+            {/* Feelings */}
+            <div className="space-y-2">
+              <Label htmlFor="feelings" className="text-[var(--ink)]">
+                How are you feeling about this?
+              </Label>
+              <Textarea
+                id="feelings"
+                placeholder="Express your emotions honestly..."
+                value={feelings}
+                onChange={(e) => setFeelings(e.target.value.slice(0, 1000))}
+                required
+                rows={4}
+                className="resize-none handwritten text-lg leading-relaxed"
+                maxLength={1000}
+              />
+              <p className="text-xs text-[var(--ink-faded)] text-right">{feelings.length}/1000</p>
+            </div>
+
+            {/* Emotions */}
+            <div className="space-y-3">
+              <Label className="text-[var(--ink)]">I'm feeling... (select all that apply)</Label>
+              <div className="grid grid-cols-2 gap-3">
+                {emotions.map((emotion) => (
+                  <div key={emotion} className="flex items-center gap-2">
+                    <Checkbox
+                      id={emotion}
+                      checked={selectedEmotions.includes(emotion)}
+                      onCheckedChange={() => toggleEmotion(emotion)}
+                    />
+                    <Label htmlFor={emotion} className="cursor-pointer font-normal text-[var(--ink-light)] handwritten text-lg">
+                      {emotion}
+                    </Label>
+                  </div>
+                ))}
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="feelings">How do you feel about this situation?</Label>
-                <Textarea
-                  id="feelings"
-                  placeholder="Express your emotions and thoughts..."
-                  value={feelings}
-                  onChange={(e) => setFeelings(e.target.value.slice(0, 1000))}
-                  required
-                  rows={4}
-                  className="resize-none"
-                  maxLength={1000}
-                />
-                <p className="text-xs text-gray-500 text-right">{feelings.length}/1000</p>
-              </div>
+            {error && (
+              <p className="text-sm text-[var(--destructive)] bg-red-50 p-3 rounded">
+                {error}
+              </p>
+            )}
 
-              <div className="space-y-3">
-                <Label>Select your current emotions (choose all that apply)</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {emotions.map((emotion) => (
-                    <div key={emotion} className="flex items-center gap-2">
-                      <Checkbox
-                        id={emotion}
-                        checked={selectedEmotions.includes(emotion)}
-                        onCheckedChange={() => toggleEmotion(emotion)}
-                      />
-                      <Label htmlFor={emotion} className="cursor-pointer font-normal">
-                        {emotion}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            {/* Privacy Note */}
+            <div className="flex items-start gap-3 p-4 bg-[var(--highlight)] rounded-lg border border-[var(--paper-lines)]">
+              <Lock className="h-5 w-5 text-[var(--accent-sage)] flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-[var(--ink-light)]">
+                Your words are private and encrypted. Both of you will receive separate, personalized guidance.
+              </p>
+            </div>
 
-              {error && <p className="text-sm text-red-500">{error}</p>}
-
-              <Button type="submit" className="w-full bg-rose-500 hover:bg-rose-600" disabled={isSubmitting}>
-                {isSubmitting ? "Submitting..." : "Submit Your Response"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+            <Button 
+              type="submit" 
+              className="w-full btn-warm py-6 handwritten text-xl"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Share My Perspective →"
+              )}
+            </Button>
+          </form>
+        </div>
       </div>
     </div>
   )
