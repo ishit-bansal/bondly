@@ -14,12 +14,20 @@ const sourceSerif = Source_Serif_4({
   variable: '--font-serif'
 })
 
+// Metadata with icons included
 export const metadata = {
   title: 'Bondly - Your Safe Space for Relationship Growth',
   description: 'A private, secure space where couples can share perspectives and receive personalized guidance. Your conversations are encrypted and automatically deleted after 24 hours.',
   generator: 'Bondly',
   keywords: ['relationship', 'couples', 'advice', 'communication', 'growth', 'private', 'secure'],
-  // Removed old icons completely
+  icons: {
+    icon: [
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
+    other: '/site.webmanifest',
+  },
 }
 
 export default function RootLayout({
@@ -28,18 +36,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <head>
-        <title>{metadata.title}</title>
-        <meta name="description" content={metadata.description} />
-
-        {/* New favicon setup */}
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-        <link rel="manifest" href="/site.webmanifest" />
-      </head>
-      <body className={`${caveat.variable} ${sourceSerif.variable} font-serif antialiased`}>
+    <html lang="en" className={`${caveat.variable} ${sourceSerif.variable} font-serif antialiased`}>
+      <body>
         {children}
         <Analytics />
       </body>
