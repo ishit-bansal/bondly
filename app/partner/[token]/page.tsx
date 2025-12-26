@@ -9,7 +9,8 @@ import { createClient } from "@/lib/supabase/client"
 import { encryptText } from "@/lib/encryption"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { BookOpen, Lock, Loader2 } from "lucide-react"
+import { Lock, Loader2 } from "lucide-react"
+import Image from "next/image"
 import type { Session } from "@/lib/types"
 
 const emotions = [
@@ -192,7 +193,7 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[var(--paper)] paper-texture flex items-center justify-center">
+      <div className="min-h-screen diary-bg paper-texture flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-[var(--accent-warm)]" />
       </div>
     )
@@ -200,33 +201,33 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
 
   if (error || !session) {
     return (
-      <div className="min-h-screen bg-[var(--paper)] paper-texture flex items-center justify-center px-4">
-        <div className="journal-card rounded-lg p-8 max-w-md page-shadow">
-          <h2 className="handwritten text-2xl text-[var(--ink)] mb-3">Hmm...</h2>
-          <p className="text-[var(--ink-light)]">{error || "Something went wrong"}</p>
+      <div className="min-h-screen diary-bg paper-texture flex items-center justify-center px-4">
+        <div className="journal-card rounded-xl p-10 max-w-md page-shadow">
+          <h2 className="handwritten text-3xl text-[var(--ink)] mb-4">Hmm...</h2>
+          <p className="text-lg text-[var(--ink-light)] serif-body">{error || "Something went wrong"}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[var(--paper)] paper-texture py-12 px-4">
-      <div className="container mx-auto max-w-2xl">
+    <div className="min-h-screen diary-bg diary-margin paper-texture py-12 px-4">
+      <div className="container mx-auto max-w-2xl relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-[var(--accent-warm)]" />
-            <span className="handwritten text-2xl text-[var(--ink)]">Bondly</span>
+        <div className="flex items-center justify-center mb-10">
+          <div className="flex items-center gap-3">
+            <Image src="/logo.svg" alt="Bondly" width={40} height={40} />
+            <span className="handwritten text-3xl text-[var(--ink)]">Bondly</span>
           </div>
         </div>
 
         {/* Main Card */}
-        <div className="journal-card rounded-lg p-8 pl-12 page-shadow">
-          <div className="mb-6">
-            <h1 className="handwritten text-4xl text-[var(--ink)] mb-2">
+        <div className="journal-card rounded-xl p-10 pl-14 page-shadow">
+          <div className="mb-8">
+            <h1 className="handwritten text-5xl text-[var(--ink)] mb-3">
               Hi {session.partner_name} ♡
             </h1>
-            <p className="text-[var(--ink-light)]">
+            <p className="text-lg text-[var(--ink-light)] serif-body">
               {session.creator_name} wants to understand things better. Share your side of the story.
             </p>
           </div>

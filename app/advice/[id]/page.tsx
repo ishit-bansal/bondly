@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
-import { BookOpen, MessageCircle, CheckCircle, ArrowLeft } from "lucide-react"
+import { MessageCircle, CheckCircle, ArrowLeft } from "lucide-react"
 import { redirect } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 
 export default async function AdvicePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -41,81 +42,81 @@ export default async function AdvicePage({ params }: { params: Promise<{ id: str
   const partnerName = advice.is_creator ? session.partner_name : session.creator_name
 
   return (
-    <div className="min-h-screen bg-[var(--paper)] paper-texture py-12 px-4">
-      <div className="container mx-auto max-w-3xl">
+    <div className="min-h-screen diary-bg diary-margin paper-texture py-12 px-4">
+      <div className="container mx-auto max-w-3xl relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-10">
           <Link href="/" className="flex items-center gap-2 text-[var(--ink-light)] hover:text-[var(--ink)] transition">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="handwritten text-lg">Home</span>
+            <ArrowLeft className="h-5 w-5" />
+            <span className="handwritten text-xl">Home</span>
           </Link>
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-[var(--accent-warm)]" />
-            <span className="handwritten text-xl text-[var(--ink)]">Bondly</span>
-          </div>
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/logo.svg" alt="Bondly" width={36} height={36} />
+            <span className="handwritten text-2xl text-[var(--ink)]">Bondly</span>
+          </Link>
         </div>
 
         {/* Title */}
-        <div className="text-center mb-10">
-          <h1 className="handwritten text-5xl text-[var(--ink)] mb-2">
+        <div className="text-center mb-12">
+          <h1 className="handwritten text-6xl text-[var(--ink)] mb-3">
             Dear {userName}...
           </h1>
-          <p className="text-[var(--ink-light)]">Here's some guidance just for you</p>
+          <p className="text-xl text-[var(--ink-light)] serif-body">Here's some guidance just for you</p>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-10">
           {/* Main Advice */}
-          <div className="journal-card rounded-lg p-8 pl-12 page-shadow">
-            <h2 className="handwritten text-2xl text-[var(--accent-warm)] mb-4">
+          <div className="journal-card rounded-xl p-10 pl-14 page-shadow">
+            <h2 className="handwritten text-3xl text-[var(--accent-warm)] mb-5">
               Understanding Your Situation
             </h2>
-            <div className="text-[var(--ink)] leading-relaxed whitespace-pre-wrap">
+            <div className="text-lg text-[var(--ink)] leading-relaxed whitespace-pre-wrap serif-body">
               {advice.advice_text}
             </div>
           </div>
 
           {/* Action Steps */}
-          <div className="journal-card rounded-lg p-8 pl-12 page-shadow">
-            <div className="flex items-center gap-3 mb-4">
-              <CheckCircle className="h-6 w-6 text-[var(--accent-sage)]" />
-              <h2 className="handwritten text-2xl text-[var(--ink)]">Things to Try</h2>
+          <div className="journal-card rounded-xl p-10 pl-14 page-shadow">
+            <div className="flex items-center gap-3 mb-5">
+              <CheckCircle className="h-7 w-7 text-[var(--accent-sage)]" />
+              <h2 className="handwritten text-3xl text-[var(--ink)]">Things to Try</h2>
             </div>
-            <ul className="space-y-4">
+            <ul className="space-y-5">
               {advice.action_steps.map((step: string, index: number) => (
                 <li key={index} className="flex gap-4">
-                  <span className="handwritten text-2xl text-[var(--accent-warm)] opacity-50">
+                  <span className="handwritten text-3xl text-[var(--accent-warm)] opacity-50">
                     {index + 1}.
                   </span>
-                  <p className="text-[var(--ink-light)] pt-1">{step}</p>
+                  <p className="text-lg text-[var(--ink-light)] pt-1 serif-body">{step}</p>
                 </li>
               ))}
             </ul>
           </div>
 
           {/* Conversation Starters */}
-          <div className="journal-card rounded-lg p-8 pl-12 page-shadow">
-            <div className="flex items-center gap-3 mb-4">
-              <MessageCircle className="h-6 w-6 text-[var(--accent-warm)]" />
-              <h2 className="handwritten text-2xl text-[var(--ink)]">
+          <div className="journal-card rounded-xl p-10 pl-14 page-shadow">
+            <div className="flex items-center gap-3 mb-5">
+              <MessageCircle className="h-7 w-7 text-[var(--accent-warm)]" />
+              <h2 className="handwritten text-3xl text-[var(--ink)]">
                 Words to Start With
               </h2>
             </div>
-            <p className="text-sm text-[var(--ink-faded)] mb-4">
+            <p className="text-base text-[var(--ink-faded)] mb-5 serif-body">
               When you're ready to talk to {partnerName}, try opening with:
             </p>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {advice.conversation_starters.map((starter: string, index: number) => (
-                <div key={index} className="bg-[var(--highlight)] border border-[var(--paper-lines)] p-4 rounded-lg">
-                  <p className="text-[var(--ink)] italic handwritten text-lg">"{starter}"</p>
+                <div key={index} className="bg-[var(--highlight)] border border-[var(--paper-lines)] p-5 rounded-xl">
+                  <p className="text-[var(--ink)] italic handwritten text-xl">"{starter}"</p>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Reminder */}
-          <div className="bg-[var(--highlight)] border border-[var(--paper-lines)] p-6 rounded-lg">
-            <h3 className="handwritten text-xl text-[var(--ink)] mb-2">Remember...</h3>
-            <p className="text-[var(--ink-light)] text-sm">
+          <div className="bg-[var(--highlight)] border border-[var(--paper-lines)] p-8 rounded-xl">
+            <h3 className="handwritten text-2xl text-[var(--ink)] mb-3">Remember...</h3>
+            <p className="text-[var(--ink-light)] text-base serif-body">
               {partnerName} has also received their own personalized guidance. Take your time to reflect, 
               and when you're both ready, have an open and honest conversation. You've got this. ♡
             </p>
