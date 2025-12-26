@@ -170,17 +170,9 @@ async function generateAdvice(
   // Sanitize all user inputs to prevent prompt injection
   const sanitizedTheirSituation = sanitizeText(theirResponse.situation_description, 2000)
   const sanitizedTheirFeelings = sanitizeText(theirResponse.feelings, 1000)
-  const sanitizedTheirEmotions = (theirResponse.emotional_state || [])
-    .filter((e: any) => typeof e === 'string')
-    .map((e: string) => sanitizeText(e, 50))
-    .join(", ") || "Not specified"
   
   const sanitizedPartnerSituation = sanitizeText(partnerResponse.situation_description, 2000)
   const sanitizedPartnerFeelings = sanitizeText(partnerResponse.feelings, 1000)
-  const sanitizedPartnerEmotions = (partnerResponse.emotional_state || [])
-    .filter((e: any) => typeof e === 'string')
-    .map((e: string) => sanitizeText(e, 50))
-    .join(", ") || "Not specified"
   
   // Sanitize names
   const safeName = sanitizeText(theirName, 50)
@@ -190,11 +182,9 @@ async function generateAdvice(
 
 ${safeName}'s situation: ${sanitizedTheirSituation}
 ${safeName}'s feelings: ${sanitizedTheirFeelings}
-${safeName}'s emotions: ${sanitizedTheirEmotions}
 
 ${safePartnerName}'s situation: ${sanitizedPartnerSituation}
 ${safePartnerName}'s feelings: ${sanitizedPartnerFeelings}
-${safePartnerName}'s emotions: ${sanitizedPartnerEmotions}
 
 Provide concise, empathetic advice for ${safeName}. Keep it brief and actionable (max 150 words for advice). Use simple human language.
 

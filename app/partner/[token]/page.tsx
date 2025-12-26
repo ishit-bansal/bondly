@@ -4,7 +4,6 @@ import type React from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
 import { createClient } from "@/lib/supabase/client"
 import { encryptText } from "@/lib/encryption"
 import { useEffect, useState } from "react"
@@ -13,25 +12,11 @@ import { Lock, Loader2 } from "lucide-react"
 import Image from "next/image"
 import type { Session } from "@/lib/types"
 
-const emotions = [
-  "Frustrated",
-  "Sad",
-  "Angry",
-  "Hurt",
-  "Confused",
-  "Anxious",
-  "Hopeful",
-  "Grateful",
-  "Disappointed",
-  "Overwhelmed",
-]
-
 export default function PartnerResponsePage({ params }: { params: Promise<{ token: string }> }) {
   const [token, setToken] = useState<string>("")
   const [session, setSession] = useState<Session | null>(null)
   const [situation, setSituation] = useState("")
   const [feelings, setFeelings] = useState("")
-  const [selectedEmotions, setSelectedEmotions] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -95,12 +80,6 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
     fetchSession()
   }, [token])
 
-  const toggleEmotion = (emotion: string) => {
-    setSelectedEmotions((prev) => 
-      prev.includes(emotion) ? prev.filter((e) => e !== emotion) : [...prev, emotion]
-    )
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!session) return
@@ -119,12 +98,10 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
       // Encrypt data if we have the encryption key
       let situationData = situation
       let feelingsData = feelings
-      let emotionsData = selectedEmotions
 
       if (encryptionKey) {
         situationData = await encryptText(situation, encryptionKey)
         feelingsData = await encryptText(feelings, encryptionKey)
-        emotionsData = [await encryptText(JSON.stringify(selectedEmotions), encryptionKey)]
       }
 
       // Create partner's response
@@ -136,7 +113,6 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
           is_creator: false,
           situation_description: situationData,
           feelings: feelingsData,
-          emotional_state: emotionsData,
         })
 
       if (responseError) throw responseError

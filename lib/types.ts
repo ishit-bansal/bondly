@@ -16,7 +16,6 @@ export interface Response {
   is_creator: boolean
   situation_description: string
   feelings: string
-  emotional_state: string[]
   created_at: string
 }
 

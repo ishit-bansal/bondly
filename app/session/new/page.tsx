@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
 import { createClient } from "@/lib/supabase/client"
 import { generateEncryptionKey, encryptText } from "@/lib/encryption"
 import { useState } from "react"
@@ -14,34 +13,14 @@ import { ArrowLeft, Lock } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
-const emotions = [
-  "Frustrated",
-  "Sad",
-  "Angry",
-  "Hurt",
-  "Confused",
-  "Anxious",
-  "Hopeful",
-  "Grateful",
-  "Disappointed",
-  "Overwhelmed",
-]
-
 export default function NewSessionPage() {
   const [yourName, setYourName] = useState("")
   const [partnerName, setPartnerName] = useState("")
   const [situation, setSituation] = useState("")
   const [feelings, setFeelings] = useState("")
-  const [selectedEmotions, setSelectedEmotions] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-
-  const toggleEmotion = (emotion: string) => {
-    setSelectedEmotions((prev) => 
-      prev.includes(emotion) ? prev.filter((e) => e !== emotion) : [...prev, emotion]
-    )
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,7 +38,6 @@ export default function NewSessionPage() {
 
       const encryptedSituation = await encryptText(situation, encryptionKey)
       const encryptedFeelings = await encryptText(feelings, encryptionKey)
-      const encryptedEmotions = await encryptText(JSON.stringify(selectedEmotions), encryptionKey)
 
       const shareToken = crypto.randomUUID()
 
@@ -83,7 +61,6 @@ export default function NewSessionPage() {
         is_creator: true,
         situation_description: encryptedSituation,
         feelings: encryptedFeelings,
-        emotional_state: [encryptedEmotions],
       })
 
       if (responseError) throw responseError
@@ -128,7 +105,7 @@ export default function NewSessionPage() {
                 <Label htmlFor="yourName" className="text-[var(--ink)] text-lg">Your name</Label>
                 <Input
                   id="yourName"
-                  placeholder="Alex"
+                  placeholder="John"
                   value={yourName}
                   onChange={(e) => setYourName(e.target.value.slice(0, 50))}
                   required
@@ -140,7 +117,7 @@ export default function NewSessionPage() {
                 <Label htmlFor="partnerName" className="text-[var(--ink)] text-lg">Partner's name</Label>
                 <Input
                   id="partnerName"
-                  placeholder="Jordan"
+                  placeholder="Maria"
                   value={partnerName}
                   onChange={(e) => setPartnerName(e.target.value.slice(0, 50))}
                   required
