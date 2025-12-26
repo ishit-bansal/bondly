@@ -191,53 +191,53 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
           </div>
 
           {/* Share Link */}
-          <div className="bg-[var(--highlight)] p-6 rounded-lg border border-[var(--paper-lines)] mb-8">
-            <p className="text-sm text-[var(--ink)] mb-3 handwritten text-lg">
-              Send this link to {session.partner_name}:
+          <div className="bg-[var(--highlight)] p-6 rounded-xl border border-[var(--paper-lines)] mb-8">
+            <p className="text-lg text-[var(--ink)] mb-4 serif-body">
+              Send this link to <strong>{session.partner_name}</strong>:
             </p>
             <div className="flex gap-2">
               <input
                 type="text"
                 readOnly
                 value={shareUrl}
-                className="flex-1 px-4 py-2 text-sm bg-[var(--paper)] border border-[var(--paper-lines)] rounded"
+                className="flex-1 px-4 py-3 text-base bg-[var(--paper)] border border-[var(--paper-lines)] rounded-lg serif-body"
               />
               <Button
                 onClick={copyLink}
                 variant="outline"
-                className="flex-shrink-0 border-[var(--accent-warm)] text-[var(--accent-warm)] hover:bg-[var(--accent-warm)] hover:text-white"
+                className="flex-shrink-0 border-[var(--accent-warm)] text-[var(--accent-warm)] hover:bg-[var(--accent-warm)] hover:text-white px-4"
               >
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
               </Button>
             </div>
-            <div className="flex items-center gap-2 mt-3 text-xs text-[var(--ink-faded)]">
-              <Lock className="h-3 w-3" />
-              <span>Link includes encryption key - only those with the link can read</span>
+            <div className="flex items-center gap-2 mt-4 text-sm text-[var(--ink-faded)] serif-body">
+              <Lock className="h-4 w-4" />
+              <span>Link includes encryption key — only those with the link can read</span>
             </div>
           </div>
 
           {/* Status Steps */}
-          <div className="space-y-4">
-            <h3 className="handwritten text-xl text-[var(--ink)]">Status</h3>
+          <div className="space-y-5">
+            <h3 className="handwritten text-2xl text-[var(--ink)]">Status</h3>
             
             {/* Step 1 */}
             <div className="flex items-center gap-4">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                 status === "waiting" 
                   ? "bg-[var(--accent-warm)] text-white" 
                   : "bg-[var(--accent-sage)] text-white"
               }`}>
                 {status === "waiting" ? (
-                  <Clock className="h-4 w-4" />
+                  <Clock className="h-5 w-5" />
                 ) : (
-                  <CheckCircle2 className="h-4 w-4" />
+                  <CheckCircle2 className="h-5 w-5" />
                 )}
               </div>
               <div className="flex-1">
-                <p className={`handwritten text-lg ${status === "waiting" ? "text-[var(--accent-warm)]" : "text-[var(--accent-sage)]"}`}>
+                <p className={`handwritten text-xl ${status === "waiting" ? "text-[var(--accent-warm)]" : "text-[var(--accent-sage)]"}`}>
                   Waiting for {session.partner_name}
                 </p>
-                <p className="text-sm text-[var(--ink-faded)]">
+                <p className="text-base text-[var(--ink-faded)] serif-body">
                   {status === "waiting" 
                     ? "They need to open the link and share their side"
                     : "Partner has shared their perspective ✓"
@@ -245,13 +245,13 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
                 </p>
               </div>
               {status === "waiting" && (
-                <Loader2 className="h-5 w-5 animate-spin text-[var(--accent-warm)]" />
+                <Loader2 className="h-6 w-6 animate-spin text-[var(--accent-warm)]" />
               )}
             </div>
 
             {/* Step 2 */}
             <div className="flex items-center gap-4">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                 status === "processing"
                   ? "bg-[var(--accent-warm)] text-white"
                   : status === "ready"
@@ -259,15 +259,15 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
                     : "bg-[var(--paper-lines)] text-[var(--ink-faded)]"
               }`}>
                 {status === "ready" ? (
-                  <CheckCircle2 className="h-4 w-4" />
+                  <CheckCircle2 className="h-5 w-5" />
                 ) : status === "processing" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  <span className="text-sm">2</span>
+                  <span className="text-base serif-body">2</span>
                 )}
               </div>
               <div className="flex-1">
-                <p className={`handwritten text-lg ${
+                <p className={`handwritten text-xl ${
                   status === "processing" 
                     ? "text-[var(--accent-warm)]" 
                     : status === "ready"
@@ -276,7 +276,7 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
                 }`}>
                   Generating guidance
                 </p>
-                <p className="text-sm text-[var(--ink-faded)]">
+                <p className="text-base text-[var(--ink-faded)] serif-body">
                   {status === "processing"
                     ? "Creating personalized insights..."
                     : status === "ready"
@@ -289,22 +289,22 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
 
             {/* Step 3 */}
             <div className="flex items-center gap-4">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                 status === "ready"
                   ? "bg-[var(--accent-sage)] text-white"
                   : "bg-[var(--paper-lines)] text-[var(--ink-faded)]"
               }`}>
                 {status === "ready" ? (
-                  <CheckCircle2 className="h-4 w-4" />
+                  <CheckCircle2 className="h-5 w-5" />
                 ) : (
-                  <span className="text-sm">3</span>
+                  <span className="text-base serif-body">3</span>
                 )}
               </div>
               <div className="flex-1">
-                <p className={`handwritten text-lg ${status === "ready" ? "text-[var(--accent-sage)]" : "text-[var(--ink-faded)]"}`}>
+                <p className={`handwritten text-xl ${status === "ready" ? "text-[var(--accent-sage)]" : "text-[var(--ink-faded)]"}`}>
                   Read your guidance
                 </p>
-                <p className="text-sm text-[var(--ink-faded)]">
+                <p className="text-base text-[var(--ink-faded)] serif-body">
                   {status === "ready"
                     ? creatorAdviceId ? "Click below to read" : "Redirecting..."
                     : "You'll be redirected automatically"
@@ -312,7 +312,7 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
                 </p>
               </div>
               {status === "ready" && !creatorAdviceId && (
-                <Loader2 className="h-5 w-5 animate-spin text-[var(--accent-sage)]" />
+                <Loader2 className="h-6 w-6 animate-spin text-[var(--accent-sage)]" />
               )}
             </div>
           </div>

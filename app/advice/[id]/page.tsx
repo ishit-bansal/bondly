@@ -97,17 +97,17 @@ export default async function AdvicePage({ params }: { params: Promise<{ id: str
           <div className="journal-card rounded-xl p-10 pl-14 page-shadow">
             <div className="flex items-center gap-3 mb-5">
               <MessageCircle className="h-7 w-7 text-[var(--accent-warm)]" />
-              <h2 className="handwritten text-3xl text-[var(--ink)]">
+              <h2 className="handwritten text-4xl text-[var(--ink)]">
                 Words to Start With
               </h2>
             </div>
-            <p className="text-base text-[var(--ink-faded)] mb-5 serif-body">
+            <p className="text-lg text-[var(--ink-light)] mb-6 serif-body">
               When you're ready to talk to {partnerName}, try opening with:
             </p>
             <div className="space-y-4">
               {advice.conversation_starters.map((starter: string, index: number) => (
-                <div key={index} className="bg-[var(--highlight)] border border-[var(--paper-lines)] p-5 rounded-xl">
-                  <p className="text-[var(--ink)] italic handwritten text-xl">"{starter}"</p>
+                <div key={index} className="bg-[var(--highlight)] border border-[var(--paper-lines)] p-6 rounded-xl">
+                  <p className="text-[var(--ink)] serif-body text-lg leading-relaxed">"{starter}"</p>
                 </div>
               ))}
             </div>
