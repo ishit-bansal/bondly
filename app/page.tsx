@@ -15,7 +15,6 @@ export default function HomePage() {
               alt="Bondly" 
               width={48} 
               height={48}
-              className="float"
             />
             <span className="handwritten text-3xl text-[var(--ink)]">Bondly</span>
           </Link>
@@ -27,56 +26,48 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <main className="container mx-auto px-6 py-16 md:py-24 relative z-10">
-        <div className="max-w-4xl mx-auto text-center space-y-10">
-          
-          {/* Logo Large */}
-          <div className="flex justify-center mb-6">
-            <Image 
-              src="/logo.svg" 
-              alt="" 
-              width={120} 
-              height={120}
-              className="float opacity-90"
-            />
-          </div>
+      <main className="container mx-auto px-6 relative z-10">
+        <div className="min-h-[calc(100vh-96px)] flex flex-col justify-center">
+          <div className="max-w-4xl mx-auto text-center space-y-10">
 
-          {/* Main Title */}
-          <div className="space-y-6">
-            <h1 className="handwritten text-6xl md:text-8xl text-[var(--ink)] leading-tight">
-              When words feel
-              <span className="block text-gradient">hard to say</span>
-            </h1>
-            <p className="text-xl md:text-2xl text-[var(--ink-light)] max-w-2xl mx-auto leading-relaxed serif-body">
-              Sometimes the most important conversations are the hardest to have. 
-              Bondly helps couples express their feelings privately, understand each other's 
-              perspective, and receive thoughtful guidance—all without judgment.
-            </p>
-          </div>
-
-          {/* CTA Button */}
-          <div className="pt-6">
-            <Link href="/session/new">
-              <Button className="btn-warm text-xl md:text-2xl px-10 py-7 rounded-xl handwritten">
-                <PenLine className="h-6 w-6 mr-3" />
-                Start Your Conversation
-              </Button>
-            </Link>
-            <p className="mt-4 text-base text-[var(--ink-faded)]">
-              No sign-up required • Completely free
-            </p>
-          </div>
-
-          {/* Trust Indicators */}
-          <div className="flex flex-wrap justify-center gap-8 pt-6 text-base text-[var(--ink-faded)]">
-            <div className="flex items-center gap-2">
-              <Lock className="h-5 w-5" />
-              <span>Encrypted on your device</span>
+            {/* Main Title */}
+            <div className="space-y-6">
+              <h1 className="handwritten text-6xl md:text-8xl text-[var(--ink)] leading-tight">
+                When words feel
+                <span className="block text-gradient">hard to say</span>
+              </h1>
+              <p className="text-xl md:text-2xl text-[var(--ink-light)] max-w-2xl mx-auto leading-relaxed serif-body">
+                Sometimes the most important conversations are the hardest to have. 
+                Bondly helps couples express their feelings privately, understand each other's 
+                perspective and receive thoughtful guidance. All without judgment.
+              </p>
             </div>
-            <div className="flex items-center gap-2">
-              <Trash2 className="h-5 w-5" />
-              <span>Deleted after 24 hours</span>
+
+            {/* CTA Button */}
+            <div className="pt-6">
+              <Link href="/session/new">
+                <Button className="btn-warm text-xl md:text-2xl px-10 py-7 rounded-xl handwritten">
+                  <PenLine className="h-6 w-6 mr-3" />
+                  Start Your Conversation
+                </Button>
+              </Link>
+              <p className="mt-4 text-base text-[var(--ink-faded)]">
+                No sign-up required • Completely free
+              </p>
             </div>
+
+            {/* Trust Indicators */}
+            <div className="flex flex-wrap justify-center gap-8 pt-6 text-base text-[var(--ink-faded)]">
+              <div className="flex items-center gap-2">
+                <Lock className="h-5 w-5" />
+                <span>Encrypted on your device</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Trash2 className="h-5 w-5" />
+                <span>Deleted after 24 hours</span>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -92,7 +83,7 @@ export default function HomePage() {
               <div className="handwritten text-6xl text-[var(--accent-warm)] opacity-40 mb-3">1</div>
               <h3 className="handwritten text-3xl text-[var(--ink)] mb-3">Write what you feel</h3>
               <p className="text-[var(--ink-light)] text-lg leading-relaxed serif-body">
-                Describe the situation from your perspective. Be honest—no one will judge you here.
+                Describe the situation from your perspective. Be honest, no one will judge you here.
               </p>
             </div>
 
@@ -131,7 +122,7 @@ export default function HomePage() {
               <p>
                 Your words are <span className="highlight-mark">encrypted before they leave your device</span>. 
                 We can't read them even if we wanted to. Everything is automatically deleted 
-                after 24 hours—because some conversations are meant to be private.
+                after 24 hours because some conversations are meant to be private.
               </p>
             </div>
           </div>

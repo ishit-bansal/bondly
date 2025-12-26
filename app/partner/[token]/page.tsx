@@ -269,25 +269,6 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
               <p className="text-xs text-[var(--ink-faded)] text-right">{feelings.length}/1000</p>
             </div>
 
-            {/* Emotions */}
-            <div className="space-y-3">
-              <Label className="text-[var(--ink)]">I'm feeling... (select all that apply)</Label>
-              <div className="grid grid-cols-2 gap-3">
-                {emotions.map((emotion) => (
-                  <div key={emotion} className="flex items-center gap-2">
-                    <Checkbox
-                      id={emotion}
-                      checked={selectedEmotions.includes(emotion)}
-                      onCheckedChange={() => toggleEmotion(emotion)}
-                    />
-                    <Label htmlFor={emotion} className="cursor-pointer font-normal text-[var(--ink-light)] handwritten text-lg">
-                      {emotion}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {error && (
               <p className="text-sm text-[var(--destructive)] bg-red-50 p-3 rounded">
                 {error}

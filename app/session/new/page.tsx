@@ -185,28 +185,6 @@ export default function NewSessionPage() {
               <p className="text-sm text-[var(--ink-faded)] text-right">{feelings.length}/1000</p>
             </div>
 
-            {/* Emotions */}
-            <div className="space-y-4">
-              <Label className="text-[var(--ink)] text-lg">I'm feeling... (select all that apply)</Label>
-              <div className="grid grid-cols-2 gap-4">
-                {emotions.map((emotion) => (
-                  <div key={emotion} className="flex items-center gap-3">
-                    <Checkbox
-                      id={emotion}
-                      checked={selectedEmotions.includes(emotion)}
-                      onCheckedChange={() => toggleEmotion(emotion)}
-                    />
-                    <Label 
-                      htmlFor={emotion} 
-                      className="cursor-pointer font-normal text-[var(--ink-light)] text-lg handwritten"
-                    >
-                      {emotion}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {error && (
               <p className="text-base text-[var(--destructive)] bg-red-50 p-4 rounded-lg">
                 {error}
