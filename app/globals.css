@@ -3,22 +3,29 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Diary/Journal Theme - Warm, papery, handwritten feel */
+/* ============================================
+   BONDLY - Diary/Journal Theme
+   A warm, papery, handwritten aesthetic
+   ============================================ */
+
 :root {
   /* Paper and ink colors */
   --paper: #faf8f5;
   --paper-aged: #f5f0e8;
+  --paper-cream: #fef9f0;
   --paper-lines: #e8e0d5;
-  --ink: #2d2a26;
+  --ink: #3d3833;
   --ink-light: #5c5650;
   --ink-faded: #8b8379;
   --pencil: #6b6560;
   --highlight: #fff4d6;
   
-  /* Accent colors - muted, vintage feel */
+  /* Accent colors - warm, vintage feel */
   --accent-warm: #c47d5e;
+  --accent-warm-light: #d9a58a;
   --accent-sage: #8b9a7c;
   --accent-dusty: #b8a9a0;
+  --accent-coffee: #8b7355;
   
   /* Semantic colors */
   --background: var(--paper);
@@ -38,10 +45,10 @@
   --destructive: #c45e5e;
   --destructive-foreground: #faf8f5;
   --border: var(--paper-lines);
-  --input: var(--paper);
+  --input: var(--paper-cream);
   --ring: var(--accent-warm);
   
-  --radius: 0.25rem;
+  --radius: 0.375rem;
 }
 
 @theme inline {
@@ -79,10 +86,52 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-image: 
-      linear-gradient(to bottom, transparent 95%, var(--paper-lines) 95%);
-    background-size: 100% 2rem;
-    background-position: 0 0.5rem;
+  }
+}
+
+/* ============================================
+   DIARY BACKGROUND WITH NOTEBOOK LINES
+   ============================================ */
+
+.diary-bg {
+  background-color: var(--paper);
+  background-image: 
+    /* Subtle paper grain texture */
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E"),
+    /* Notebook horizontal lines */
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 1.9rem,
+      rgba(200, 180, 160, 0.2) 1.9rem,
+      rgba(200, 180, 160, 0.2) 2rem
+    ),
+    /* Warm gradient */
+    linear-gradient(180deg, var(--paper) 0%, var(--paper-cream) 50%, var(--paper-aged) 100%);
+  background-blend-mode: overlay, normal, normal;
+}
+
+/* Red margin line for diary effect */
+.diary-margin {
+  position: relative;
+}
+
+.diary-margin::before {
+  content: '';
+  position: fixed;
+  left: 4rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, #e8c9c9 0%, #d4a5a5 50%, #e8c9c9 100%);
+  opacity: 0.4;
+  z-index: 10;
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .diary-margin::before {
+    display: none;
   }
 }
 
@@ -95,147 +144,234 @@
   content: '';
   position: absolute;
   inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.04;
   pointer-events: none;
   z-index: 1;
 }
 
-/* Handwritten style */
+/* ============================================
+   HANDWRITTEN TYPOGRAPHY
+   ============================================ */
+
 .handwritten {
   font-family: var(--font-handwritten);
+  letter-spacing: 0.01em;
 }
 
-/* Journal entry card style */
+.serif-body {
+  font-family: var(--font-serif);
+  line-height: 1.7;
+}
+
+/* ============================================
+   JOURNAL CARD STYLES
+   ============================================ */
+
 .journal-card {
-  background: linear-gradient(135deg, var(--paper-aged) 0%, var(--paper) 100%);
+  background: linear-gradient(145deg, var(--paper-cream) 0%, var(--paper-aged) 100%);
   border: 1px solid var(--paper-lines);
   box-shadow: 
-    2px 2px 8px rgba(0, 0, 0, 0.04),
-    inset 0 0 40px rgba(0, 0, 0, 0.01);
+    3px 3px 0 rgba(0, 0, 0, 0.02),
+    6px 6px 15px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
   position: relative;
+  overflow: hidden;
 }
 
+/* Red margin line on cards */
 .journal-card::before {
   content: '';
   position: absolute;
-  left: 2.5rem;
+  left: 2.75rem;
   top: 0;
   bottom: 0;
-  width: 1px;
-  background: #e8c9c9;
-  opacity: 0.6;
+  width: 2px;
+  background: linear-gradient(to bottom, transparent 0%, #e8c9c9 10%, #e8c9c9 90%, transparent 100%);
+  opacity: 0.5;
 }
 
-/* Pencil underline effect */
-.pencil-underline {
-  text-decoration: underline;
-  text-decoration-color: var(--pencil);
-  text-decoration-style: wavy;
-  text-underline-offset: 4px;
+/* Paper holes decoration */
+.journal-card::after {
+  content: '';
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--paper);
+  border-radius: 50%;
+  box-shadow: 
+    0 -2rem 0 var(--paper),
+    0 2rem 0 var(--paper);
 }
 
 /* Soft page shadow */
 .page-shadow {
   box-shadow: 
     4px 4px 0 var(--paper-lines),
-    8px 8px 20px rgba(0, 0, 0, 0.08);
+    8px 8px 25px rgba(139, 115, 85, 0.12);
 }
 
-/* Warm button style */
+/* ============================================
+   BUTTON STYLES
+   ============================================ */
+
 .btn-warm {
-  background: linear-gradient(135deg, var(--accent-warm) 0%, #b06d4e 100%);
+  background: linear-gradient(145deg, var(--accent-warm) 0%, #b06d4e 100%);
   color: var(--paper);
   border: none;
-  box-shadow: 0 2px 8px rgba(196, 125, 94, 0.3);
-  transition: all 0.2s ease;
+  box-shadow: 
+    0 4px 14px rgba(196, 125, 94, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.25s ease;
+  font-weight: 500;
 }
 
 .btn-warm:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(196, 125, 94, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 20px rgba(196, 125, 94, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-/* Input styling for diary feel */
+.btn-warm:active {
+  transform: translateY(0);
+}
+
+/* ============================================
+   INPUT STYLES - Better Readability
+   ============================================ */
+
 input, textarea {
-  background: var(--paper) !important;
-  border: 1px dashed var(--paper-lines) !important;
-  font-family: var(--font-handwritten);
-  font-size: 1.1rem;
+  background: var(--paper-cream) !important;
+  border: 2px solid var(--paper-lines) !important;
+  border-radius: 0.5rem !important;
+  font-family: var(--font-serif) !important;
+  font-size: 1.125rem !important;
+  line-height: 1.6 !important;
+  color: var(--ink) !important;
+  padding: 0.875rem 1rem !important;
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--ink-faded) !important;
+  opacity: 0.7 !important;
+  font-style: italic !important;
 }
 
 input:focus, textarea:focus {
   border-color: var(--accent-warm) !important;
-  box-shadow: 0 0 0 2px rgba(196, 125, 94, 0.1) !important;
+  box-shadow: 
+    0 0 0 3px rgba(196, 125, 94, 0.15),
+    inset 0 2px 4px rgba(0, 0, 0, 0.02) !important;
+  outline: none !important;
 }
 
-/* Checkbox styling */
+/* Textarea with notebook lines */
+textarea {
+  background-image: 
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 1.7rem,
+      rgba(200, 180, 160, 0.15) 1.7rem,
+      rgba(200, 180, 160, 0.15) 1.75rem
+    ) !important;
+  background-position: 0 0.5rem !important;
+}
+
+/* ============================================
+   CHECKBOX STYLING
+   ============================================ */
+
 [data-state="checked"] {
   background: var(--accent-warm) !important;
   border-color: var(--accent-warm) !important;
 }
+
+/* ============================================
+   DECORATIVE ELEMENTS
+   ============================================ */
 
 /* Privacy badge */
 .privacy-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: rgba(139, 154, 124, 0.15);
+  padding: 0.625rem 1.25rem;
+  background: rgba(139, 154, 124, 0.12);
   border: 1px solid var(--accent-sage);
   border-radius: 9999px;
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   color: var(--accent-sage);
+  font-weight: 500;
 }
 
-/* Tape effect for cards */
-.tape {
+/* Washi tape effect */
+.washi-tape {
   position: relative;
 }
 
-.tape::after {
+.washi-tape::before {
   content: '';
   position: absolute;
-  top: -0.75rem;
+  top: -0.875rem;
   left: 50%;
-  transform: translateX(-50%) rotate(-2deg);
-  width: 4rem;
-  height: 1.5rem;
-  background: rgba(255, 244, 214, 0.8);
+  transform: translateX(-50%) rotate(-1.5deg);
+  width: 5rem;
+  height: 1.75rem;
+  background: linear-gradient(90deg, 
+    rgba(255, 244, 214, 0.9) 0%, 
+    rgba(255, 237, 190, 0.9) 50%,
+    rgba(255, 244, 214, 0.9) 100%);
   border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-/* Torn paper edge effect */
-.torn-edge {
+/* Coffee ring stain decoration */
+.coffee-ring {
   position: relative;
 }
 
-.torn-edge::after {
+.coffee-ring::after {
   content: '';
   position: absolute;
-  bottom: -8px;
-  left: 0;
-  right: 0;
-  height: 8px;
-  background: linear-gradient(135deg, var(--paper) 25%, transparent 25%),
-              linear-gradient(225deg, var(--paper) 25%, transparent 25%);
-  background-size: 16px 16px;
+  bottom: -1rem;
+  right: 1rem;
+  width: 3rem;
+  height: 3rem;
+  border: 2px solid rgba(139, 115, 85, 0.1);
+  border-radius: 50%;
+  transform: rotate(-15deg);
 }
 
-/* Lock icon animation */
+/* Pencil underline effect */
+.pencil-underline {
+  text-decoration: underline;
+  text-decoration-color: var(--accent-warm);
+  text-decoration-style: wavy;
+  text-underline-offset: 6px;
+  text-decoration-thickness: 2px;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
 @keyframes secure-pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  50% { opacity: 0.5; }
 }
 
 .secure-icon {
-  animation: secure-pulse 2s ease-in-out infinite;
+  animation: secure-pulse 2.5s ease-in-out infinite;
 }
 
-/* Staggered animation for list items */
+/* Staggered fade-in animation */
 .stagger-in > * {
   opacity: 0;
-  animation: fade-up 0.5s ease forwards;
+  animation: fade-up 0.6s ease forwards;
 }
 
 .stagger-in > *:nth-child(1) { animation-delay: 0.1s; }
@@ -247,10 +383,38 @@ input:focus, textarea:focus {
 @keyframes fade-up {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(15px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Gentle float animation */
+@keyframes gentle-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.float {
+  animation: gentle-float 4s ease-in-out infinite;
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* Text gradient for accent */
+.text-gradient {
+  background: linear-gradient(135deg, var(--accent-warm) 0%, var(--accent-coffee) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Highlight mark effect */
+.highlight-mark {
+  background: linear-gradient(180deg, transparent 50%, var(--highlight) 50%);
+  padding: 0 0.25rem;
 }
