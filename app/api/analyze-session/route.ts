@@ -192,7 +192,7 @@ IMPORTANT: Return ONLY valid JSON, no explanations, no markdown, no code blocks.
 {"advice": "1-2 short paragraphs of advice", "actionSteps": ["step1", "step2", "step3"], "conversationStarters": ["starter1", "starter2", "starter3"]}`
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`
     ,{
       method: "POST",
       headers: {
