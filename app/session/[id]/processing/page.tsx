@@ -2,10 +2,11 @@
 
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
-import { BookOpen, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
+import Image from "next/image"
 
 function ProcessingContent({ sessionId }: { sessionId: string }) {
   const router = useRouter()
@@ -79,35 +80,35 @@ function ProcessingContent({ sessionId }: { sessionId: string }) {
   }, [sessionId, router, roleParam])
 
   return (
-    <div className="min-h-screen bg-[var(--paper)] paper-texture flex items-center justify-center px-4">
-      <div className="journal-card rounded-lg p-8 max-w-md w-full page-shadow text-center">
+    <div className="min-h-screen diary-bg paper-texture flex items-center justify-center px-4">
+      <div className="journal-card rounded-xl p-10 max-w-lg w-full page-shadow text-center">
         {/* Header */}
-        <div className="flex items-center justify-center gap-2 mb-6">
-          <BookOpen className="h-6 w-6 text-[var(--accent-warm)]" />
-          <span className="handwritten text-2xl text-[var(--ink)]">Bondly</span>
+        <div className="flex items-center justify-center gap-3 mb-8">
+          <Image src="/logo.svg" alt="Bondly" width={40} height={40} className="float" />
+          <span className="handwritten text-3xl text-[var(--ink)]">Bondly</span>
         </div>
 
-        <h1 className="handwritten text-3xl text-[var(--ink)] mb-4">
+        <h1 className="handwritten text-4xl text-[var(--ink)] mb-5">
           Creating your guidance...
         </h1>
         
-        <p className="text-[var(--ink-light)] mb-6">
+        <p className="text-lg text-[var(--ink-light)] mb-8 serif-body">
           We're thoughtfully preparing personalized insights for both of you. This usually takes about 10 seconds.
         </p>
 
         {adviceId ? (
           <Link href={`/advice/${adviceId}`}>
-            <Button className="btn-warm py-4 px-8 handwritten text-lg">
+            <Button className="btn-warm py-5 px-10 handwritten text-xl rounded-xl">
               Read Your Guidance
             </Button>
           </Link>
         ) : (
           <div className="flex justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-[var(--accent-warm)]" />
+            <Loader2 className="h-10 w-10 animate-spin text-[var(--accent-warm)]" />
           </div>
         )}
 
-        <p className="text-xs text-[var(--ink-faded)] mt-6">
+        <p className="text-sm text-[var(--ink-faded)] mt-8">
           You'll be redirected automatically when ready
         </p>
       </div>
@@ -124,7 +125,7 @@ export default function ProcessingPage({ params }: { params: Promise<{ id: strin
 
   if (!sessionId) {
     return (
-      <div className="min-h-screen bg-[var(--paper)] paper-texture flex items-center justify-center">
+      <div className="min-h-screen diary-bg paper-texture flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-[var(--accent-warm)]" />
       </div>
     )
@@ -132,7 +133,7 @@ export default function ProcessingPage({ params }: { params: Promise<{ id: strin
 
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[var(--paper)] paper-texture flex items-center justify-center">
+      <div className="min-h-screen diary-bg paper-texture flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-[var(--accent-warm)]" />
       </div>
     }>

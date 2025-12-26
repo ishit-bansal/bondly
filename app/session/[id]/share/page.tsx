@@ -2,9 +2,10 @@
 
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { Clock, CheckCircle2, Loader2, Copy, Check, BookOpen, ArrowLeft, Lock } from "lucide-react"
+import { Clock, CheckCircle2, Loader2, Copy, Check, ArrowLeft, Lock } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { useEffect, useState } from "react"
 import type { Session } from "@/lib/types"
 
@@ -155,7 +156,7 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
 
   if (isLoading || !session) {
     return (
-      <div className="min-h-screen bg-[var(--paper)] paper-texture flex items-center justify-center">
+      <div className="min-h-screen diary-bg paper-texture flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-[var(--accent-warm)]" />
       </div>
     )
@@ -164,27 +165,27 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
   const shareUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/partner/${session.share_token}${encryptionKey ? `#key=${encryptionKey}` : ''}`
 
   return (
-    <div className="min-h-screen bg-[var(--paper)] paper-texture py-12 px-4">
-      <div className="container mx-auto max-w-2xl">
+    <div className="min-h-screen diary-bg diary-margin paper-texture py-12 px-4">
+      <div className="container mx-auto max-w-2xl relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-10">
           <Link href="/" className="flex items-center gap-2 text-[var(--ink-light)] hover:text-[var(--ink)] transition">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="handwritten text-lg">Home</span>
+            <ArrowLeft className="h-5 w-5" />
+            <span className="handwritten text-xl">Home</span>
           </Link>
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-[var(--accent-warm)]" />
-            <span className="handwritten text-xl text-[var(--ink)]">Bondly</span>
-          </div>
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/logo.svg" alt="Bondly" width={36} height={36} />
+            <span className="handwritten text-2xl text-[var(--ink)]">Bondly</span>
+          </Link>
         </div>
 
         {/* Main Card */}
-        <div className="journal-card rounded-lg p-8 pl-12 page-shadow">
+        <div className="journal-card rounded-xl p-10 pl-14 page-shadow">
           <div className="text-center mb-8">
-            <h1 className="handwritten text-4xl text-[var(--ink)] mb-2">
+            <h1 className="handwritten text-5xl text-[var(--ink)] mb-3">
               Thanks, {session.creator_name} ♡
             </h1>
-            <p className="text-[var(--ink-light)]">
+            <p className="text-lg text-[var(--ink-light)] serif-body">
               Now it's {session.partner_name}'s turn to share their perspective
             </p>
           </div>
