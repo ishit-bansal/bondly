@@ -18,6 +18,10 @@ export const metadata = {
   title: 'Bondly - Your Safe Space for Relationship Growth',
   description: 'A private, secure space where couples can share perspectives and receive personalized guidance. Your conversations are encrypted and automatically deleted after 24 hours.',
   keywords: ['relationship', 'couples', 'advice', 'communication', 'growth', 'private', 'secure'],
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
 }
 
 export default function RootLayout({
