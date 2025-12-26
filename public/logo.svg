@@ -1,0 +1,34 @@
+<svg width="512" height="512" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Two intertwined hearts - outer heart (larger, behind) -->
+  <path 
+    d="M256 288c0-88.4 71.6-160 160-160s160 71.6 160 160c0 8-0.6 15.9-1.8 23.6"
+    stroke="#c47d5e" 
+    stroke-width="56" 
+    stroke-linecap="round" 
+    fill="none"
+  />
+  <path 
+    d="M576 288c0-88.4 71.6-160 160-160s160 71.6 160 160c0 176-256 384-256 384"
+    stroke="#c47d5e" 
+    stroke-width="56" 
+    stroke-linecap="round" 
+    fill="none"
+  />
+  
+  <!-- Inner heart (smaller, in front) -->
+  <path 
+    d="M128 448c0-88.4 71.6-160 160-160s160 71.6 160 160c0 176-256 384-256 384S128 624 128 448z"
+    stroke="#c47d5e" 
+    stroke-width="56" 
+    stroke-linecap="round" 
+    stroke-linejoin="round" 
+    fill="none"
+  />
+  <path 
+    d="M448 448c0-88.4 71.6-160 160-160s160 71.6 160 160c0 176-256 384-256 384"
+    stroke="#c47d5e" 
+    stroke-width="56" 
+    stroke-linecap="round" 
+    fill="none"
+  />
+</svg>
