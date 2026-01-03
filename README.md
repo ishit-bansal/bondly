@@ -6,7 +6,7 @@ A private, encrypted space for couples to understand each other better.
 
 When words feel hard to say, Bondly helps couples express their feelings privately, understand each other's perspective, and receive thoughtful guidance — all without judgment.
 
-**[Live Site](https://bondly-roan.vercel.app)**
+**[Live Site](https://bondly.ishitbansal.com)**
 
 **Key Features:**
 - **End-to-end encrypted** — Your words are encrypted before leaving your device
