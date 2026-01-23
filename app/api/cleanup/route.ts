@@ -26,33 +26,35 @@ export async function GET(request: Request) {
 
     const supabase = await createClient(true) // Use admin client
 
+    const cutoffTime = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
     // Delete advice older than 24 hours
-    const { count: deletedAdvice } = await supabase
+    const { data: deletedAdviceData } = await supabase
       .from("advice")
       .delete()
-      .lt("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-      .select("*", { count: "exact", head: true })
+      .lt("created_at", cutoffTime)
+      .select("id")
 
     // Delete responses older than 24 hours
-    const { count: deletedResponses } = await supabase
+    const { data: deletedResponsesData } = await supabase
       .from("responses")
       .delete()
-      .lt("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-      .select("*", { count: "exact", head: true })
+      .lt("created_at", cutoffTime)
+      .select("id")
 
     // Delete sessions older than 24 hours
-    const { count: deletedSessions } = await supabase
+    const { data: deletedSessionsData } = await supabase
       .from("sessions")
       .delete()
-      .lt("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-      .select("*", { count: "exact", head: true })
+      .lt("created_at", cutoffTime)
+      .select("id")
 
     return NextResponse.json({
       success: true,
       deleted: {
-        sessions: deletedSessions || 0,
-        responses: deletedResponses || 0,
-        advice: deletedAdvice || 0,
+        sessions: deletedSessionsData?.length || 0,
+        responses: deletedResponsesData?.length || 0,
+        advice: deletedAdviceData?.length || 0,
       },
       timestamp: new Date().toISOString()
     })

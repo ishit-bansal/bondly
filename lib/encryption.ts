@@ -70,7 +70,7 @@ async function importKey(keyBase64: string): Promise<CryptoKey> {
   const keyBuffer = base64ToArrayBuffer(keyBase64)
   return crypto.subtle.importKey(
     'raw',
-    keyBuffer,
+    keyBuffer.buffer as ArrayBuffer,
     { name: 'AES-GCM', length: 256 },
     false,
     ['encrypt', 'decrypt']
