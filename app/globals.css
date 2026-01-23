@@ -264,6 +264,13 @@ input::placeholder, textarea::placeholder {
   color: var(--ink-faded) !important;
   opacity: 0.7 !important;
   font-style: italic !important;
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+}
+
+/* Center placeholder text in textareas */
+textarea::placeholder {
+  text-align: center !important;
 }
 
 input:focus, textarea:focus {
