@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
  * GET /api/cleanup
  * 
  * Deletes all data older than 24 hours.
- * This endpoint is called by Vercel Cron every hour.
+ * This endpoint is called by cron job daily.
  * 
  * Security: Uses CRON_SECRET to prevent unauthorized access
  */

@@ -53,7 +53,7 @@ $$;
 -- Option A: Use Supabase Edge Functions with a scheduled job
 -- See: https://supabase.com/docs/guides/functions/schedule-functions
 
--- Option B: Use an external service like GitHub Actions, Vercel Cron, etc.
+-- Option B: Use an external service like GitHub Actions, cron jobs, etc.
 -- Create a simple API endpoint that calls delete_old_sessions()
 
 -- ============================================
@@ -63,7 +63,7 @@ $$;
 -- If you don't have pg_cron, you can manually run:
 -- SELECT delete_old_sessions();
 --
--- Or set up a Vercel Cron Job (free tier includes cron):
+-- Or set up a cron job (e.g., via Vercel, Railway, etc.):
 -- See vercel.json for configuration
 -- ============================================
 
