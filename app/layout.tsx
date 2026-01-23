@@ -15,9 +15,22 @@ const sourceSerif = Source_Serif_4({
 })
 
 export const metadata = {
-  title: 'Bondly - Your Safe Space for Relationship Growth',
-  description: 'A private, secure space where couples can share perspectives and receive personalized guidance. Your conversations are encrypted and automatically deleted after 24 hours.',
-  keywords: ['relationship', 'couples', 'advice', 'communication', 'growth', 'private', 'secure'],
+  title: 'Bondly - When Words Feel Hard to Say',
+  description: 'A private, encrypted space where couples can share perspectives and receive personalized guidance. Your conversations are automatically deleted after 24 hours.',
+  keywords: ['relationship', 'couples', 'advice', 'communication', 'growth', 'private', 'secure', 'encrypted'],
+  metadataBase: new URL('https://bondly.ishitbansal.com'),
+  openGraph: {
+    title: 'Bondly - When Words Feel Hard to Say',
+    description: 'A private, encrypted space where couples can share perspectives and receive personalized guidance.',
+    url: 'https://bondly.ishitbansal.com',
+    siteName: 'Bondly',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Bondly - When Words Feel Hard to Say',
+    description: 'A private, encrypted space where couples can share perspectives and receive personalized guidance.',
+  },
   icons: {
     icon: '/favicon.ico',
     apple: '/apple-touch-icon.png',

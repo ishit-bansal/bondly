@@ -8,6 +8,7 @@ import { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
 import Image from "next/image"
 
+// Make logo in processing page clickable
 function ProcessingContent({ sessionId }: { sessionId: string }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -83,10 +84,10 @@ function ProcessingContent({ sessionId }: { sessionId: string }) {
     <div className="min-h-screen diary-bg paper-texture flex items-center justify-center px-4">
       <div className="journal-card rounded-xl p-10 max-w-lg w-full page-shadow text-center">
         {/* Header */}
-        <div className="flex items-center justify-center gap-3 mb-8">
+        <Link href="/" className="flex items-center justify-center gap-3 mb-8 hover:opacity-80 transition">
           <Image src="/logo.svg" alt="Bondly" width={40} height={40} className="float" />
           <span className="handwritten text-3xl text-[var(--ink)]">Bondly</span>
-        </div>
+        </Link>
 
         <h1 className="handwritten text-4xl text-[var(--ink)] mb-5">
           Creating your guidance...
