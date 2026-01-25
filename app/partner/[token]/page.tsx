@@ -192,7 +192,7 @@ export default function PartnerResponsePage({ params }: { params: Promise<{ toke
       <div className="container mx-auto max-w-2xl relative z-10">
         {/* Header */}
         <div className="flex items-center justify-center mb-10">
-          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition">
+          <Link href="https://bondly.ishitbansal.com" className="flex items-center gap-3 hover:opacity-80 transition">
             <Image src="/logo.svg" alt="Bondly" width={40} height={40} />
             <span className="handwritten text-3xl text-[var(--ink)]">Bondly</span>
           </Link>
