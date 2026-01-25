@@ -147,7 +147,7 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
   const copyLink = async () => {
     if (!session) return
     // Include encryption key in partner link
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bondly.ishitbansal.com"
     const shareUrl = `${baseUrl}/partner/${session.share_token}${encryptionKey ? `#key=${encryptionKey}` : ''}`
     await navigator.clipboard.writeText(shareUrl)
     setCopied(true)
@@ -162,7 +162,7 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
     )
   }
 
-  const shareUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/partner/${session.share_token}${encryptionKey ? `#key=${encryptionKey}` : ''}`
+  const shareUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://bondly.ishitbansal.com"}/partner/${session.share_token}${encryptionKey ? `#key=${encryptionKey}` : ''}`
 
   return (
     <div className="min-h-screen diary-bg diary-margin paper-texture py-12 px-4">
