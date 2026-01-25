@@ -137,8 +137,8 @@ export default function NewSessionPage() {
                 value={situation}
                 onChange={(e) => setSituation(e.target.value.slice(0, 2000))}
                 required
-                rows={6}
-                className="resize-none"
+                rows={7}
+                className="resize-none min-h-[10rem]"
                 maxLength={2000}
               />
               <p className="text-sm text-[var(--ink-faded)] text-right">{situation.length}/2000</p>
